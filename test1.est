@@ -1,0 +1,10 @@
+// Priors and rules file
+// *********************
+
+[PARAMETERS]
+0 MUTRATE unif 1e-7 1e-9 output
+0
+
+[COMPLEX PARAMETERS]
+
+0

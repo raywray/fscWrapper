@@ -1,0 +1,39 @@
+// Priors and rules file
+// *********************
+
+[PARAMETERS]
+//#isInt? #name   #dist.#min  #max 
+//all Ns are in number of haploid individuals
+1  N_POP0       unif     10    2e6   output	bounded	reference
+1  N_POP1       unif     10    2e6   output	bounded reference
+1  N_POP2       unif     10    2e6   output	bounded	reference	
+1  N_ANCAll     unif     10    2e6   output	bounded	reference
+1  N_ANC01      unif     10    2e6   output	bounded	reference
+1  TDIV01       unif     5    TDIV_PLACEHOLDER   output	bounded	reference
+1  TPLUS01      unif     5    TPLUS01_PLACEHOLDER   hide	bounded	reference
+0  NM01        logunif  1e-5   5    hide bounded	reference
+0  NM10        logunif  1e-5   5    hide bounded	reference
+0  NM02        logunif  1e-5   5    hide bounded	reference
+0  NM20        logunif  1e-5   5    hide bounded	reference
+0  NM12        logunif  1e-5   5    hide bounded	reference
+0  NM21        logunif  1e-5   5    hide bounded	reference
+0  NM2A        logunif  1e-5   5    hide bounded	reference
+0  NMA2        logunif  1e-5   5    hide bounded	reference
+
+[RULES]
+
+[COMPLEX PARAMETERS]
+
+0  MIG01 =  NM01/N_POP0  output
+0  MIG10 =  NM10/N_POP1  output
+0  MIG02 =  NM02/N_POP0  output
+0  MIG20 =  NM20/N_POP2  output
+0  MIG12 =  NM12/N_POP1  output
+0  MIG21 =  NM21/N_POP2  output
+0  MIGA2 =  NMA2/N_ANC01 output
+0  MIG2A =  NM2A/N_POP2  output
+
+1  TDIV2_ANC01  = TDIV01+TPLUS01  output
+
+0  RELANC21 = N_ANCAll/N_ANC01    hide
+0  RELANC01 = N_ANC01/N_POP1      hide
