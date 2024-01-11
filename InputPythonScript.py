@@ -42,8 +42,8 @@ def write_tpl_file(file_name, num_pops, Ne, sample_sizes, growth_rates, mig_info
         "//per Block:data type, number of loci, per gen recomb and mut rates",
         "FREQ 1 0 MUTRATE OUTEXP"
     ]
-    
-    with open("test1.tpl","w") as fout:
+
+    with open(file_name,"w") as fout:
         fout.writelines('\n'.join(lines))
         
     
