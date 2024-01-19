@@ -47,10 +47,33 @@ def write_tpl_file(file_name, num_pops, Ne, sample_sizes, growth_rates, mig_info
         fout.writelines('\n'.join(lines))
         
     
+def current_migration_matrix(num_populations, *args):
+    current_matrix = ["//Migration matrix 0"]
+    
+    for i in range(1, num_populations + 1):
+        matrix_row = []
+        for j in range(1, num_populations + 1):
+            if i == j:
+                matrix_at_i_j = "0"
+            else:
+                from_pop = population_name(index = j-1, *args)
+                to_pop = population_name(index = i-1, *args)
+                matrix_at_i_j = f"MIG_{from_pop}to{to_pop}"
+                
+            matrix_row.append(matrix_at_i_j)
+        current_matrix.append(" ".join(matrix_row))
+    return(current_matrix)
 
+# TODO modify this function when the time comes
+def population_name(index):
+    if index == 0:
+        return "RAYA"
+    else:
+        return "TREVOR"
+    
 
-if NUM_OF_GROUPS==1:
-    # NUM_OF_TOPOLOGIES=1
-    write_est_file("test1.est","0","0")
-    write_tpl_file("test2.tpl","0","0","0","0","0","0")
-
+# commenting for testing
+# if NUM_OF_GROUPS==1:
+#     # NUM_OF_TOPOLOGIES=1
+#     write_est_file("test1.est","0","0")
+#     write_tpl_file("test2.tpl","0","0","0","0","0","0")
