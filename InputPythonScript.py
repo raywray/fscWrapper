@@ -64,6 +64,14 @@ def current_migration_matrix(num_populations, *args):
         current_matrix.append(" ".join(matrix_row))
     return(current_matrix)
 
+
+def oldest_migration_matrix(num_populations):
+    oldest_matrix = f"//Migration matrix {num_populations - 1}"
+    temp = [["0"] * num_populations for _ in range(num_populations)]
+    oldest_matrix = [oldest_matrix] + [" ".join(row) for row in temp]
+    return oldest_matrix
+
+
 # TODO modify this function when the time comes
 def population_name(index):
     if index == 0:
