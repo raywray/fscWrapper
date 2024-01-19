@@ -72,8 +72,7 @@ def population_name(index):
         return "TREVOR"
     
 
-# commenting for testing
-# if NUM_OF_GROUPS==1:
-#     # NUM_OF_TOPOLOGIES=1
-#     write_est_file("test1.est","0","0")
-#     write_tpl_file("test2.tpl","0","0","0","0","0","0")
+if NUM_OF_GROUPS==1:
+    # NUM_OF_TOPOLOGIES=1
+    write_est_file("test1.est","0","0")
+    write_tpl_file("test2.tpl","0","0","0","0","0","0")
