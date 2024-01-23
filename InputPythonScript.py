@@ -1,3 +1,5 @@
+import re
+
 NUM_OF_GROUPS=1
 TDIV=0
 TPLUS01=0
@@ -70,6 +72,31 @@ def oldest_migration_matrix(num_populations):
     temp = [["0"] * num_populations for _ in range(num_populations)]
     oldest_matrix = [oldest_matrix] + [" ".join(row) for row in temp]
     return oldest_matrix
+
+def matrix_generation(num_pops, divergence_events, *args):
+    subsequent_matrix = current_migration_matrix(num_populations=num_pops, *args)
+    output = subsequent_matrix # TODO I don't think this adds anything
+    
+    # loop throught all divergence events to create matrices going backward in time
+    for i in reversed(range(1, len(divergence_events) + 1)):
+        event = divergence_events[i]
+        subsequent_matrix_index = re.sub(r'T.* ([0-9])$', r'\1', event)
+        
+        if subsequent_matrix_index == num_pops - 1:
+            oldest_migration_matrix(num_pops)
+        else:
+            coalescing_population = re.sub(r'^TDIV_[a-zA-Z]*to([a-zA-Z]*) [0-9].*$', r'\1', event)
+            subsequent_matrix = re.sub(
+                r"MIG_" + coalescing_population + "to[A-Z]*|" + "MIG_[A-Z]*to" + coalescing_population,
+                "0",
+                subsequent_matrix[1:]
+            )
+            subsequent_matrix = [
+                "//Migration matrix" + subsequent_matrix_index,
+                subsequent_matrix
+            ]
+        output = output + subsequent_matrix
+    return output
 
 
 # TODO modify this function when the time comes
