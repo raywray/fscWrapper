@@ -102,6 +102,17 @@ def randomize_divergence_order(root_population_indices, leaf_population_indices,
 #     # Add your implementation of population_name
 #     pass
 
+def population_name(index):
+    if index == 0:
+        return "RAYA"
+    else:
+        return "TREVOR"
+def matrix_generation(*args):
+    return 0
+def growth_rates(*args):
+    return 0
+def population_size(*args):
+    return 0
 
 def random_initializations():
     add_ghost = random.choice([True, False])
@@ -119,15 +130,20 @@ def random_initializations():
             leaves.append(w_index+1)
     divergence_events = randomize_divergence_order(roots, leaves, split_SF=split_SF, ghost_present=add_ghost)
     historical_events = divergence_events
+# Raya code here for migration matrix generation.
+    mig_matrix=matrix_generation(num_pop, divergence_events, split_SF=split_SF)
+    # Admixture code after divergence here.
+    growth_rates=growth_rates(num_pop, historical_events, split_SF=split_SF)
+    pop_name=population_name(0)
+    pop_size=population_size(split_SF=split_SF)
+    fn="sample.tpl"
+    
+    return write_tpl_file(fn, num_pop, pop_name, pop_size, ['0'] * len(growth_rates), mig_matrix, [f"{len(historical_events)} historical events"] + historical_events[::-1])
 
-    return 0
+    
 
 # TODO modify this function when the time comes
-def population_name(index):
-    if index == 0:
-        return "RAYA"
-    else:
-        return "TREVOR"
+
     
 
 if NUM_OF_GROUPS==1:
