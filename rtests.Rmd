@@ -154,3 +154,9 @@ print(is.character(output))
 print(length(output))
 print("done")
 ```
+```{r mig info}
+mig_mat <- c(0,0,0)
+divergence_events<-c("TDIV_['WRM']to['SFP'] 1 2 1 RES_['WRM']to['SFP'] 0 2", "TDIV_['WRM']to['SFWC'] 0 2 1 RES_['WRM']to['SFWC'] 0 1")
+mig_info <- c(as.character(length(divergence_events) + 1), mig_mat)
+mig_info
+```
