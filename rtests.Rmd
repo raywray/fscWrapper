@@ -79,3 +79,78 @@ class(root)
 # root2 <- sample(possible_roots, 1)
 # root2
 ```
+
+```{r seq along}
+populations<-c("SF", "WRM", "VAL")
+# index<-seq_along(populations) - 1
+index<-1
+output<-populations[index + 1]
+print(is.character(output))
+```
+
+```{r trying again}
+population_name <- function(index = NULL, split_SF, ghost_present){
+  if(!split_SF){
+    populations <- c("SF", "WRM")
+  } else populations <- c("SFWC", "SFP", "WRM")
+  if(ghost_present) populations <- c(populations, "G")
+  if(is.null(index)) index <- seq_along(populations) - 1
+  return(populations[index + 1])
+}
+
+my_sample <- function(x, ...){
+  if(length(x) == 1) return(x)
+  else sample(x, ...)
+}
+
+randomize_divergence_order <- function(...){
+  migrants <- 1 
+  growth_rate <- 0 # set to 0 because it's like that in all the example templates
+  output <- c()
+  possible_roots <- c(2)
+  possible_leaves <- c(0,1)
+  rev_migration_matrix_index <- length(possible_leaves)
+  while(length(possible_leaves) > 0){
+    root <- my_sample(possible_roots, size = 1) 
+    offshoot <- my_sample(possible_leaves, size = 1)
+    print(cat("offshot: ", offshoot, "length: ", length(offshoot)))
+    root_name <- population_name(index = root, ...)
+    offshoot_name <- population_name(index = offshoot, ...)
+    print(cat("offshoot name: ", offshoot_name))
+    time <- paste0("TDIV_", root_name, "to", offshoot_name)
+    new_deme_size <- paste0("RES_", root_name, "to", offshoot_name)
+    output <- 
+      c(output, 
+        paste(
+          time, 
+          offshoot, 
+          root, 
+          migrants, 
+          new_deme_size, 
+          growth_rate, rev_migration_matrix_index, 
+          collapse = " "
+        )
+      )
+    possible_roots <- c(possible_roots, offshoot)
+    possible_leaves <- setdiff(possible_leaves, offshoot)
+    rev_migration_matrix_index <- rev_migration_matrix_index - 1
+  }
+  return(output)
+}
+randomize_divergence_order(split_SF=FALSE, ghost_present=FALSE)
+```
+
+```{r pop names}
+population_name <- function(index = NULL, split_SF, ghost_present){
+  if(!split_SF){
+    populations <- c("SF", "WRM")
+  } else populations <- c("SFWC", "SFP", "WRM")
+  if(ghost_present) populations <- c(populations, "G")
+  if(is.null(index)) index <- seq_along(populations) - 1
+  return(populations[index + 1])
+}
+output = population_name(index=NULL, TRUE, FALSE)
+print(is.character(output))
+print(length(output))
+print("done")
+```
