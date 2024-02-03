@@ -63,7 +63,7 @@ def write_tpl_file(file_name, num_pops, Ne, sample_sizes, growth_rates, mig_info
         fout.writelines('\n'.join(lines))
         
     
-def current_migration_matrix(num_populations, *args):
+def current_migration_matrix(num_populations, **kwargs):
     current_matrix = ["//Migration matrix 0"]
     
     for i in range(1, num_populations + 1):
@@ -72,8 +72,8 @@ def current_migration_matrix(num_populations, *args):
             if i == j:
                 matrix_at_i_j = "0"
             else:
-                from_pop = population_name(index = j-1, *args)
-                to_pop = population_name(index = i-1, *args)
+                from_pop = population_name(index = j-1, **kwargs)
+                to_pop = population_name(index = i-1, **kwargs)
                 matrix_at_i_j = f"MIG_{from_pop}to{to_pop}"
                 
             matrix_row.append(matrix_at_i_j)
@@ -87,29 +87,32 @@ def oldest_migration_matrix(num_populations):
     oldest_matrix = [oldest_matrix] + [" ".join(row) for row in temp]
     return oldest_matrix
 
-def matrix_generation(num_pops, divergence_events, *args):
-    subsequent_matrix = current_migration_matrix(num_populations=num_pops, *args)
-    output = subsequent_matrix # TODO I don't think this adds anything
+def matrix_generation(num_pops, divergence_events, **kwargs):
+    subsequent_matrix = current_migration_matrix(num_populations=num_pops, **kwargs)
+    output = [subsequent_matrix] 
     
     # loop throught all divergence events to create matrices going backward in time
-    for i in reversed(range(1, len(divergence_events) + 1)):
+    for i in reversed(range(len(divergence_events))):
         event = divergence_events[i]
         subsequent_matrix_index = re.sub(r'T.* ([0-9])$', r'\1', event)
         
         if subsequent_matrix_index == num_pops - 1:
-            oldest_migration_matrix(num_pops)
+            subsequent_matrix = oldest_migration_matrix(num_pops)
         else:
-            coalescing_population = re.sub(r'^TDIV_[a-zA-Z]*to([a-zA-Z]*) [0-9].*$', r'\1', event)
-            subsequent_matrix = re.sub(
-                r"MIG_" + coalescing_population + "to[A-Z]*|" + "MIG_[A-Z]*to" + coalescing_population,
-                "0",
-                subsequent_matrix[1:]
-            )
+            coalescing_population = re.sub(r"^TDIV_[a-zA-Z]*to([a-zA-Z]*) [0-9].*$", r"\1", event)
             subsequent_matrix = [
-                "//Migration matrix" + subsequent_matrix_index,
-                subsequent_matrix
+                re.sub(
+                    r"MIG_" + re.escape(coalescing_population) + r"to[A-Z]*|" + r"MIG_[A-Z]*to" + re.escape(coalescing_population), 
+                    "0", 
+                    line
+                )
+                for line in subsequent_matrix[1:]
             ]
-        output = output + subsequent_matrix
+            subsequent_matrix = [
+                "//Migration matrix " + subsequent_matrix_index
+            ] + subsequent_matrix
+        # output = output + subsequent_matrix
+        output.append(subsequent_matrix)
     return output
 
 def my_sample(x, **kwargs):
