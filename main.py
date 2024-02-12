@@ -91,27 +91,29 @@ def matrix_generation(num_pops, divergence_events, **kwargs):
     subsequent_matrix = current_migration_matrix(num_populations=num_pops, **kwargs)
     output = [subsequent_matrix] 
     
-    # loop throught all divergence events to create matrices going backward in time
+    # # loop throught all divergence events to create matrices going backward in time
     for i in reversed(range(len(divergence_events))):
         event = divergence_events[i]
         subsequent_matrix_index = re.sub(r'T.* ([0-9])$', r'\1', event)
-        
-        if subsequent_matrix_index == num_pops - 1:
+        if int(subsequent_matrix_index) == num_pops - 1:
             subsequent_matrix = oldest_migration_matrix(num_pops)
         else:
             coalescing_population = re.sub(r"^TDIV_[a-zA-Z]*to([a-zA-Z]*) [0-9].*$", r"\1", event)
+           # do this to a matrix without the title element
+            trimmed_matrix = subsequent_matrix.copy()
+            trimmed_matrix.pop(0)
+            pattern = r"MIG_{}to[A-Z]*|MIG_[A-Z]*to{}".format(coalescing_population, coalescing_population)
             subsequent_matrix = [
                 re.sub(
-                    r"MIG_" + re.escape(coalescing_population) + r"to[A-Z]*|" + r"MIG_[A-Z]*to" + re.escape(coalescing_population), 
+                    pattern, 
                     "0", 
                     line
                 )
-                for line in subsequent_matrix[1:]
+                for line in trimmed_matrix
             ]
-            subsequent_matrix = [
-                "//Migration matrix " + subsequent_matrix_index
-            ] + subsequent_matrix
-        # output = output + subsequent_matrix
+            title = f"//Migration matrix {subsequent_matrix_index}"
+            subsequent_matrix.insert(0, title)
+
         output.append(subsequent_matrix)
     return output
 
