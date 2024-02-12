@@ -1,5 +1,6 @@
 import random
 from math import comb
+import re
 
 NUM_OF_GROUPS=1
 TDIV=0
@@ -62,7 +63,7 @@ def write_tpl_file(file_name, num_pops, Ne, sample_sizes, growth_rates, mig_info
         fout.writelines('\n'.join(lines))
         
     
-def current_migration_matrix(num_populations, *args):
+def current_migration_matrix(num_populations, **kwargs):
     current_matrix = ["//Migration matrix 0"]
     
     for i in range(1, num_populations + 1):
@@ -71,8 +72,8 @@ def current_migration_matrix(num_populations, *args):
             if i == j:
                 matrix_at_i_j = "0"
             else:
-                from_pop = population_name(index = j-1, *args)
-                to_pop = population_name(index = i-1, *args)
+                from_pop = population_name(index = j-1, **kwargs)
+                to_pop = population_name(index = i-1, **kwargs)
                 matrix_at_i_j = f"MIG_{from_pop}to{to_pop}"
                 
             matrix_row.append(matrix_at_i_j)
@@ -85,6 +86,36 @@ def oldest_migration_matrix(num_populations):
     temp = [["0"] * num_populations for _ in range(num_populations)]
     oldest_matrix = [oldest_matrix] + [" ".join(row) for row in temp]
     return oldest_matrix
+
+def matrix_generation(num_pops, divergence_events, **kwargs):
+    subsequent_matrix = current_migration_matrix(num_populations=num_pops, **kwargs)
+    output = [subsequent_matrix] 
+    
+    # # loop throught all divergence events to create matrices going backward in time
+    for i in reversed(range(len(divergence_events))):
+        event = divergence_events[i]
+        subsequent_matrix_index = re.sub(r'T.* ([0-9])$', r'\1', event)
+        if int(subsequent_matrix_index) == num_pops - 1:
+            subsequent_matrix = oldest_migration_matrix(num_pops)
+        else:
+            coalescing_population = re.sub(r"^TDIV_[a-zA-Z]*to([a-zA-Z]*) [0-9].*$", r"\1", event)
+           # do this to a matrix without the title element
+            trimmed_matrix = subsequent_matrix.copy()
+            trimmed_matrix.pop(0)
+            pattern = r"MIG_{}to[A-Z]*|MIG_[A-Z]*to{}".format(coalescing_population, coalescing_population)
+            subsequent_matrix = [
+                re.sub(
+                    pattern, 
+                    "0", 
+                    line
+                )
+                for line in trimmed_matrix
+            ]
+            title = f"//Migration matrix {subsequent_matrix_index}"
+            subsequent_matrix.insert(0, title)
+
+        output.append(subsequent_matrix)
+    return output
 
 def my_sample(x, **kwargs):
     if len(x) == 1:
