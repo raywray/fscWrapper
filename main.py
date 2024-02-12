@@ -8,8 +8,6 @@ TPLUS01=0
 SAMPLE_SIZES=[1]
 MUT_RATE=6e-8
 
-def matrix_generation(num_pops, divergence_events, **kwargs):
-    return []
 def get_growth_rates(num_pops, **kwargs):
     return [0, 6, 5]
 def population_size(**kwargs):
