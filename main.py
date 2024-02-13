@@ -8,8 +8,18 @@ TPLUS01=0
 SAMPLE_SIZES=[1]
 MUT_RATE=6e-8
 
-def get_growth_rates(num_pops, **kwargs):
-    return [0, 6, 5]
+def get_growth_rates(num_pops, events, **kwargs): # TODO it looks like this function only ever returns 0s, so look into that
+    gr = ["0"] * num_pops
+
+    unique_matches = {match for event in events for match in re.findall(r"GR_[A-Z]+", event)}
+    GR_ = list(unique_matches)
+    population_order = population_name(**kwargs)
+    for el in GR_:
+        modified_code = el.replace("GR_", "")
+        if modified_code in population_order:
+            gr[population_order.index(modified_code)] = el
+    return gr
+
 def population_size(**kwargs):
     return 0
 
