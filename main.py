@@ -1,6 +1,7 @@
 import random
 from math import comb
 import re
+import numpy as np
 
 NUM_OF_GROUPS=1
 TDIV=0
@@ -19,6 +20,9 @@ def get_growth_rates(num_pops, events, **kwargs): # TODO it looks like this func
         if modified_code in population_order:
             gr[population_order.index(modified_code)] = el
     return gr
+
+def random_admixture_event(**kwargs):
+    return 0
 
 def population_size(index=None, split_SF=False, ghost_present=False):
     if not split_SF:
@@ -175,8 +179,6 @@ def population_name(index = None, split_SF=False, ghost_present=False):
         return [populations[i] for i in index]
     return [populations[index]]
 
-def get_admixture_event(num_admixture_events):
-    return []
 
 def random_initializations():
     add_ghost = random.choice([True, False])
@@ -200,9 +202,27 @@ def random_initializations():
     mig_info = [str(len(divergence_events) + 1)] + mig_mat
     # Admixture
     num_admixture_events = random.sample(range(comb(num_pops, 2) + 1), 1)[0]
-    historical_events.append(get_admixture_event(num_admixture_events))
-    
-    # Admixture code after divergence here.
+    if num_admixture_events > 0:
+        admix_after_these_divergences = [0] * num_admixture_events
+        for i in range(1, num_admixture_events):
+            admixture_event = random_admixture_event(
+                num_pops,
+                admix_after_these_divergences[i],
+                split_SF=split_SF,
+                ghost_present=add_ghost
+            ) 
+        # don't repeat admix events
+            while len(set(admixture_event) & set(historical_events)) > 0:
+                admixture_event = random_admixture_event(
+                    num_pops,
+                    admix_after_these_divergences[i],
+                    split_SF=split_SF,
+                    ghost_present=add_ghost
+                )
+            historical_events.append(admixture_event)
+            
+
+    # pull growth rates from hx events
     growth_rates=get_growth_rates(num_pops, events=historical_events, split_SF=split_SF, ghost_present=add_ghost)
     
     # Effective population sizes
