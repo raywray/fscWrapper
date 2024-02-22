@@ -21,7 +21,15 @@ def get_growth_rates(num_pops, events, **kwargs): # TODO it looks like this func
             gr[population_order.index(modified_code)] = el
     return gr
 
-def random_admixture_event(**kwargs):
+def random_admixture_event(num_pops, divergence_events, **kwargs):
+    source = my_sample(list(range(0, num_pops)), k=1)
+    difference = list(set(list(range(0, num_pops))) - set([source]))
+    sink = my_sample(difference, k=1)
+    output = single_admixture_event(source, sink, divergence_events, **kwargs)
+    output.append(single_admixture_event(sink, source, divergence_events, **kwargs))
+    return output
+
+def single_admixture_event(**kwargs):
     return 0
 
 def population_size(index=None, split_SF=False, ghost_present=False):
@@ -237,7 +245,8 @@ def random_initializations():
     
 
 # TODO modify this function when the time comes
-random_initializations()
+# random_initializations() 
+random_admixture_event(3, [])
 # if NUM_OF_GROUPS==1:
 #     # NUM_OF_TOPOLOGIES=1
 #     write_est_file("test1.est","0","0")
