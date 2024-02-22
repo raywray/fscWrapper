@@ -20,8 +20,16 @@ def get_growth_rates(num_pops, events, **kwargs): # TODO it looks like this func
             gr[population_order.index(modified_code)] = el
     return gr
 
-def population_size(**kwargs):
-    return 0
+def population_size(index=None, split_SF=False, ghost_present=False):
+    if not split_SF:
+        sample_size = [6, 4] # TODO this is hard-coded (6 society finches, 4 WRM)
+    else:
+        sample_size = [2, 4, 4] # TODO this is also hard-coded
+    if ghost_present:
+        sample_size.append(0)
+    if index is None:
+        return sample_size
+    return sample_size[index]
 
 def write_est_file(file_name, simple_params, complex_params):
     lines=[
