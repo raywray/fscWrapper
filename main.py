@@ -10,9 +10,7 @@ SAMPLE_SIZES = [1]
 MUT_RATE = 6e-8
 
 
-def get_growth_rates(
-    num_pops, events, **kwargs
-):  # TODO it looks like this function only ever returns 0s, so look into that
+def get_growth_rates(num_pops, events, **kwargs):  # TODO it looks like this function only ever returns 0s, so look into that
     gr = ["0"] * num_pops
 
     unique_matches = {
@@ -234,29 +232,45 @@ def population_name(index=None, split_SF=False, ghost_present=False):
 
 
 def random_initializations():
+    # Determine if ghost pop
     add_ghost = random.choice([True, False])
+
+    # determine total num of pops
     split_SF = random.choice([True, False])
     num_pops = 3 if split_SF else 2
     num_pops += int(add_ghost)
-    w_index = num_pops - (2 if add_ghost else 1)
-    roots = [w_index]
-    leaves = list(range(w_index))
+
+    # place wrm as root node (bc it's the outgroup)
+    wrm_index = num_pops - (2 if add_ghost else 1)
+    roots = [wrm_index]
+
+    # place the society finch(es) as leaf nodes
+    leaves = list(range(wrm_index))
+
+    # place ghost pop (if there is one) as leaf or root
     if add_ghost:
+        # determine if the ghost will be part of the root or leaf nodes in the tree
         ghost_role = random.choice(["root", "leaf"])
         if ghost_role == "root":
-            roots.append(w_index + 1)
+            roots.append(wrm_index + 1)
         else:
-            leaves.append(w_index + 1)
+            leaves.append(wrm_index + 1)
 
+    # create divergence events
     divergence_events = randomize_divergence_order(
         roots, leaves, split_SF=split_SF, ghost_present=add_ghost
     )
     historical_events = divergence_events
 
+    # build migration matrices prior to each divergence event
     mig_mat = matrix_generation(
         num_pops, divergence_events, split_SF=split_SF, ghost_present=add_ghost
     )
     mig_info = [str(len(divergence_events) + 1)] + mig_mat
+
+    # Was going to add admixing to periods after divergence
+    # num_admixture_events <- sample(0:length(divergence_events), 1)
+    # But example code only shows for the current period, so I'll do that
     # Admixture
     num_admixture_events = random.sample(range(comb(num_pops, 2) + 1), 1)[0]
     if num_admixture_events > 0:
