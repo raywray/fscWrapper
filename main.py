@@ -1,3 +1,3 @@
-from pipeline_modules import generate_random_tpl_est_files
+from pipeline_modules import generate_random_tpl
 
-generate_random_tpl_est_files()
+generate_random_tpl()

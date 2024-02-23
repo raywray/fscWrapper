@@ -1,7 +1,6 @@
 import random
 from math import comb
 import re
-import numpy as np
 
 NUM_OF_GROUPS = 1
 TDIV = 0
@@ -9,6 +8,55 @@ TPLUS01 = 0
 SAMPLE_SIZES = [1]
 MUT_RATE = 6e-8
 
+
+def write_est_file(file_name, simple_params, complex_params):
+    lines = [
+        "// Priors and rules file",
+        "// *********************",
+        "",
+        "[PARAMETERS]",
+        "0 MUTRATE unif 1e-7 1e-9 output",
+        simple_params,
+        "",
+        "[COMPLEX PARAMETERS]",
+        "",
+        complex_params,
+    ]
+
+    with open(file_name, "w") as fout:
+        fout.writelines("\n".join(lines))
+
+def write_tpl_file(
+    file_name, num_pops, Ne, sample_sizes, growth_rates, mig_info, historical_events
+):
+    # TODO will need to fix the population effective sizes and historical events
+
+    def list_to_string(list):
+        return " ".join(map(str, list))
+
+    lines = [
+        "//Number of population samples (demes)",
+        str(num_pops),
+        "//Population effective sizes (number of genes)",
+        str(Ne),
+        "//Sample sizes",
+        str(sample_sizes),
+        "//Growth rates : negative growth implies population expansion",
+        list_to_string(growth_rates),
+        "//Number of migration matrices : 0 implies no migration between demes",
+        list_to_string(mig_info),
+        "//historical event: time, source, sink, migrants, new deme size, growth rate, migr mat index",
+        list_to_string(historical_events),
+        "//Number of independent loci [chromosome]",
+        "1 0",
+        "//Per chromosome: Number of contiguous linkage Block: a block is a set of contiguous loci",
+        "1",
+        "//per Block:data type, number of loci, per gen recomb and mut rates",
+        "FREQ 1 0 MUTRATE OUTEXP",
+    ]
+
+    with open(file_name, "w") as fout:
+        fout.writelines("\n".join(lines))
 
 def get_growth_rates(num_pops, events, **kwargs):  # TODO it looks like this function only ever returns 0s, so look into that
     gr = ["0"] * num_pops
@@ -63,57 +111,6 @@ def population_size(index=None, split_SF=False, ghost_present=False):
     if index is None:
         return sample_size
     return sample_size[index]
-
-
-def write_est_file(file_name, simple_params, complex_params):
-    lines = [
-        "// Priors and rules file",
-        "// *********************",
-        "",
-        "[PARAMETERS]",
-        "0 MUTRATE unif 1e-7 1e-9 output",
-        simple_params,
-        "",
-        "[COMPLEX PARAMETERS]",
-        "",
-        complex_params,
-    ]
-
-    with open(file_name, "w") as fout:
-        fout.writelines("\n".join(lines))
-
-
-def write_tpl_file(
-    file_name, num_pops, Ne, sample_sizes, growth_rates, mig_info, historical_events
-):
-    # TODO will need to fix the population effective sizes and historical events
-
-    def list_to_string(list):
-        return " ".join(map(str, list))
-
-    lines = [
-        "//Number of population samples (demes)",
-        str(num_pops),
-        "//Population effective sizes (number of genes)",
-        str(Ne),
-        "//Sample sizes",
-        str(sample_sizes),
-        "//Growth rates : negative growth implies population expansion",
-        list_to_string(growth_rates),
-        "//Number of migration matrices : 0 implies no migration between demes",
-        list_to_string(mig_info),
-        "//historical event: time, source, sink, migrants, new deme size, growth rate, migr mat index",
-        list_to_string(historical_events),
-        "//Number of independent loci [chromosome]",
-        "1 0",
-        "//Per chromosome: Number of contiguous linkage Block: a block is a set of contiguous loci",
-        "1",
-        "//per Block:data type, number of loci, per gen recomb and mut rates",
-        "FREQ 1 0 MUTRATE OUTEXP",
-    ]
-
-    with open(file_name, "w") as fout:
-        fout.writelines("\n".join(lines))
 
 
 def current_migration_matrix(num_populations, **kwargs):
@@ -318,6 +315,7 @@ def random_initializations():
 
 # TODO modify this function when the time comes
 # random_initializations()
+# TODO write create_est function
 # if NUM_OF_GROUPS==1:
 #     # NUM_OF_TOPOLOGIES=1
 #     write_est_file("test1.est","0","0")
