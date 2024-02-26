@@ -1,4 +1,5 @@
 import re
+from itertools import chain
 
 
 def estimation(simple_params, complex_params):
@@ -37,41 +38,14 @@ def create_est(input_template):
     simple_parameters.extend(append_me)
 
     # Migration rate parameters
-    # TODO this is where the simple params error is
-    start_idx = (
-        next(
-            (
-                i
-                for i, item in enumerate(input_template)
-                if "Migration matrix 0" in item
-            ),
-            None,
-        )
-        + 1
-    )
-    end_idx = (
-        next(
-            (
-                i
-                for i, item in enumerate(input_template)
-                if "Migration matrix 1" in item
-            ),
-            None,
-        )
-        - 1
-    )
-    if start_idx and end_idx:
-        current_migration_parameters = set(
-            " ".join(input_template[start_idx:end_idx]).split()
-        )
-        append_me = [
-            "0 {} logunif 1e-10 1e-1 output".format(param)
-            for param in current_migration_parameters
-            if param != "0"
-        ]
-        simple_parameters.extend(append_me)
-        print("simple param")
-        for param in simple_parameters: print(param)
+    migration_matrix_0_location = [i for i, item in enumerate(input_template) if re.search("Migration matrix 0", item)][0] + 1
+    migration_matrix_1_location = [i for i, item in enumerate(input_template) if re.search("Migration matrix 1", item)][0]
+
+    current_migration_parameter_location = input_template[migration_matrix_0_location:migration_matrix_1_location]
+    current_migration_parameters = list(set(chain.from_iterable([item.split(" ") for item in current_migration_parameter_location])))[1:]
+
+    append_me = ["0 " + param + " logunif 1e-10 1e-1 output" for param in current_migration_parameters] # TODO rename this
+    simple_parameters.extend(append_me)
 
     # Resizing parameters
     if any("RES_" in line for line in input_template):
@@ -103,8 +77,8 @@ def create_est(input_template):
     admixture_parameters = set(
         re.findall(r"(a_[a-zA-Z0-9_]+)", " ".join(input_template))
     )
-    append_me = [
-        "0 {} unif 0 .25 output".format(param) for param in admixture_parameters
+    append_me = [ # TODO rename this
+        "0 {} unif 0 0.25 output".format(param) for param in admixture_parameters
     ]
     simple_parameters.extend(append_me)
 
@@ -168,21 +142,3 @@ tpl = [
     "FREQ 1 0 MUTRATE OUTEXP",
 ]
 create_est(tpl)
-
-# [1] "simple params"
-#  [1] "1 NPOP_SFWC unif 100 300000 output"       
-#  [2] "1 NPOP_SFP unif 100 300000 output"        
-#  [3] "1 NPOP_WRM unif 100 300000 output"        
-#  [4] "1 NPOP_G unif 100 300000 output"          
-#  [5] "0 MIG_SFPtoSFWC logunif 1e-10 1e-1 output"
-#  [6] "0 MIG_WRMtoSFWC logunif 1e-10 1e-1 output"
-#  [7] "0 MIG_GtoSFWC logunif 1e-10 1e-1 output"  
-#  [8] "0 MIG_SFWCtoSFP logunif 1e-10 1e-1 output"
-#  [9] "0 MIG_WRMtoSFP logunif 1e-10 1e-1 output" 
-# [10] "0 MIG_GtoSFP logunif 1e-10 1e-1 output"   
-# [11] "0 MIG_SFWCtoWRM logunif 1e-10 1e-1 output"
-# [12] "0 MIG_SFPtoWRM logunif 1e-10 1e-1 output" 
-# [13] "0 MIG_GtoWRM logunif 1e-10 1e-1 output"   
-# [14] "0 MIG_SFWCtoG logunif 1e-10 1e-1 output"  
-# [15] "0 MIG_SFPtoG logunif 1e-10 1e-1 output"   
-# [16] "0 MIG_WRMtoG logunif 1e-10 1e-1 output"   
