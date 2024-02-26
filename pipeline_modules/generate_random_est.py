@@ -22,7 +22,14 @@ def estimation(simple_params, complex_params):
 
 
 # this function generates an estimation file for a tpl template
-def create_est(input_template):
+def create_est(input_template_filepath, est_filename="random.est"):
+    input_template = []
+
+    with open(input_template_filepath, "r") as inFile:
+        for line in inFile:
+            input_template.append(line.strip())
+    print(input_template)
+
     # TODO change to read in a file
     # Initialize lists for parameters
     simple_parameters = []
@@ -84,61 +91,6 @@ def create_est(input_template):
 
     # Combine parameters & write to a file
     est = estimation(simple_parameters, complex_parameters)
-    with open("random.est", "w") as file:
+    with open(est_filename, "w") as file:
         for line in est:
             file.write(line + "\n")
-
-
-tpl = [
-    "//Number of population samples (demes)",
-    "4",
-    "//Population effective sizes (number of genes)",
-    "NPOP_SFWC",
-    "NPOP_SFP",
-    "NPOP_WRM",
-    "NPOP_G",
-    "//Sample sizes",
-    "2",
-    "4",
-    "4",
-    "0",
-    "//Growth rates : negative growth implies population expansion",
-    "0",
-    "0",
-    "0",
-    "0",
-    "//Number of migration matrices : 0 implies no migration between demes",
-    "3",
-    "//Migration matrix 0",
-    "0 MIG_SFPtoSFWC MIG_WRMtoSFWC MIG_GtoSFWC",
-    "MIG_SFWCtoSFP 0 MIG_WRMtoSFP MIG_GtoSFP",
-    "MIG_SFWCtoWRM MIG_SFPtoWRM 0 MIG_GtoWRM",
-    "MIG_SFWCtoG MIG_SFPtoG MIG_WRMtoG 0",
-    "//Migration matrix 1",
-    "0 0 MIG_WRMtoSFWC MIG_GtoSFWC",
-    "0 0 0 0",
-    "MIG_SFWCtoWRM 0 0 MIG_GtoWRM",
-    "MIG_SFWCtoG 0 MIG_WRMtoG 0",
-    "//Migration matrix 2",
-    "0 0 0 0",
-    "0 0 0 0",
-    "0 0 0 MIG_GtoWRM",
-    "0 0 MIG_WRMtoG 0",
-    "//historical event: time, source, sink, migrants, new deme size, growth rate, migr mat index",
-    "8 historical events",
-    "TAdm_WRMtoSFWC 0 2 a_WRMtoSFWC 1 0 0",
-    "TAdm_SFWCtoWRM 2 0 a_SFWCtoWRM 1 0 0",
-    "TAdm_GtoSFWC 0 3 a_GtoSFWC 1 0 0",
-    "TAdm_SFWCtoG 3 0 a_SFWCtoG 1 0 0",
-    "TAdm_GtoWRM 2 3 a_GtoWRM 1 0 0",
-    "TAdm_WRMtoG 3 2 a_WRMtoG 1 0 0",
-    "TDIV_WRMtoSFP 1 2 1 RES_WRMtoSFP 0 1",
-    "TDIV_WRMtoSFWC 0 2 1 RES_WRMtoSFWC 0 2",
-    "//Number of independent loci [chromosome]",
-    "1 0",
-    "//Per chromosome: Number of contiguous linkage Block: a block is a set of contiguous loci",
-    "1",
-    "//per Block:data type, number of loci, per gen recomb and mut rates",
-    "FREQ 1 0 MUTRATE OUTEXP",
-]
-create_est(tpl)
