@@ -7,12 +7,15 @@ def estimation(simple_params, complex_params):
         "",
         "[PARAMETERS]",
         "0 MUTRATE unif 1e-7 1e-9 output",
-        f"{simple_params}",
+    ] + [ 
+        param for param in simple_params
+    ] + [
         "",
         "[COMPLEX PARAMETERS]",
         "",
-        f"{complex_params}"
-        ]
+    ] + [
+        param for param in complex_params
+    ]
 
 # this function generates an estimation file for a tpl template
 def create_est(input_template):
@@ -50,8 +53,11 @@ def create_est(input_template):
     append_me = ["0 {} unif 0 .25 output".format(param) for param in admixture_parameters]
     simple_parameters.extend(append_me)
 
-    # Return combined parameters
-    return estimation(simple_parameters, complex_parameters)
+    # Combine parameters
+    est = estimation(simple_parameters, complex_parameters)
+    with open("random.est", "w") as file:
+        for line in est:
+            file.write(line + "\n")
 
 tpl = [
     "//Number of population samples (demes)",
@@ -105,6 +111,4 @@ tpl = [
   "//per Block:data type, number of loci, per gen recomb and mut rates",
   "FREQ 1 0 MUTRATE OUTEXP"
 ]
-est = create_est(tpl)
-with open("is-this-right.est", "w") as file:
-    file.writelines(est)
+create_est(tpl)
