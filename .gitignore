@@ -9,3 +9,8 @@ rtests.Rmd
 rtest.Rmd
 test.py
 .vscode
+example*
+is-this-right.est
+random.est
+test_est.py
+random_test.est

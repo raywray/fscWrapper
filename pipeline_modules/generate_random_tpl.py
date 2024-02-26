@@ -228,7 +228,7 @@ def population_name(index=None, split_SF=False, ghost_present=False):
     ]  # TODO does this have to return a list? can it return a string?
 
 
-def random_initializations():
+def random_initializations(tpl_filename="random.tpl"):
     # Determine if ghost pop
     add_ghost = random.choice([True, False])
 
@@ -299,10 +299,9 @@ def random_initializations():
 
     # Sample sizes
     sample_sizes = population_size(split_SF=split_SF, ghost_present=add_ghost)
-    file_name = "sample.tpl"
 
     return write_tpl_file(
-        file_name=file_name,
+        file_name=tpl_filename,
         num_pops=num_pops,
         Ne=Ne,
         sample_sizes=sample_sizes,
