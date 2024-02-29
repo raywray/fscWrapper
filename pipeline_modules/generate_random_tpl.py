@@ -204,9 +204,7 @@ def population_name(index=None, split_SF=False, ghost_present=False):
     if index == None:
         index = list(range(len(populations)))
         return [populations[i] for i in index]
-    return [
-        populations[index]
-    ]  # TODO does this have to return a list? can it return a string?
+    return populations[index]
 
 
 def random_initializations(tpl_filename="random.tpl"):
