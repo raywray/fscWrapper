@@ -44,9 +44,9 @@ def get_growth_rates(num_pops):
 
 
 def random_admixture_event(num_pops, divergence_event, **kwargs):
-    source = my_sample(list(range(0, num_pops)), k=1)
+    source = get_sample(list(range(0, num_pops)), k=1)
     difference = list(set(list(range(0, num_pops))) - set([source]))
-    sink = my_sample(difference, k=1)
+    sink = get_sample(difference, k=1)
     output = single_admixture_event(source, sink, divergence_event, **kwargs)
     output += single_admixture_event(sink, source, divergence_event, **kwargs)
     return output
@@ -76,12 +76,12 @@ def single_admixture_event(source, sink, divergence_event=None, **kwargs):
     return output
 
 
-def current_migration_matrix(num_populations, **kwargs):
+def current_migration_matrix(num_pops, **kwargs):
     current_matrix = ["//Migration matrix 0"]
 
-    for i in range(1, num_populations + 1):
+    for i in range(1, num_pops + 1):
         matrix_row = []
-        for j in range(1, num_populations + 1):
+        for j in range(1, num_pops + 1):
             if i == j:
                 matrix_at_i_j = "0.000"
             else:
@@ -96,15 +96,15 @@ def current_migration_matrix(num_populations, **kwargs):
     return current_matrix
 
 
-def oldest_migration_matrix(num_populations):
-    oldest_matrix = f"//Migration matrix {num_populations - 1}"
-    temp = [["0"] * num_populations for _ in range(num_populations)]
+def oldest_migration_matrix(num_pops):
+    oldest_matrix = f"//Migration matrix {num_pops - 1}"
+    temp = [["0"] * num_pops for _ in range(num_pops)]
     oldest_matrix = [oldest_matrix] + [" ".join(row) for row in temp]
     return oldest_matrix
 
 
 def matrix_generation(num_pops, divergence_events, **kwargs):
-    subsequent_matrix = current_migration_matrix(num_populations=num_pops, **kwargs)
+    subsequent_matrix = current_migration_matrix(num_pops=num_pops, **kwargs)
     output = [subsequent_matrix]
 
     # # loop throught all divergence events to create matrices going backward in time
@@ -131,11 +131,11 @@ def matrix_generation(num_pops, divergence_events, **kwargs):
     return output
 
 
-def my_sample(x, **kwargs):
-    if len(x) == 1:
-        return x[0]
+def get_sample(sampling_options, **kwargs):
+    if len(sampling_options) == 1:
+        return sampling_options[0]
     else:
-        return random.sample(x, **kwargs)[0]
+        return random.sample(sampling_options, **kwargs)[0]
 
 
 def randomize_divergence_order(
@@ -149,8 +149,8 @@ def randomize_divergence_order(
     rev_migration_matrix_index = len(leaf_population_indices)
 
     while len(possible_leaves) > 0:
-        root = my_sample(possible_roots, k=1)
-        offshoot = my_sample(possible_leaves, k=1)
+        root = get_sample(possible_roots, k=1)
+        offshoot = get_sample(possible_leaves, k=1)
        
         # Get all populations
         populations = get_populations(**kwargs)
@@ -187,16 +187,18 @@ def get_populations(ghost_present=False):
     for i in range(0, NUM_POPS):
         populations.append(str(i))
    
-   # If ghost population present, add G to populations list
+   # If ghost population present add G to populations list
     if ghost_present:
         populations.append("G")
     return populations
 
 def add_admixture_events(num_pops, historical_events, **kwargs):
-    num_admixture_events = random.sample(range(comb(num_pops, 2) + 1), 1)[0]
+    # Randomize num of admix events (can be 0)
+    num_ways_to_choose_two_pops = comb(num_pops, 2)
+    num_admixture_events = random.sample(range(num_ways_to_choose_two_pops + 1), 1)[0]
     
-    if num_admixture_events > 0:
-        admix_after_these_divergences = [0] * num_admixture_events
+    if num_admixture_events > 0: # if there are admix events
+        admix_after_these_divergences = [0] * num_admixture_events # initialize matrix
         for i in range(1, num_admixture_events):
             admixture_event = random_admixture_event(
                 num_pops,
@@ -214,7 +216,7 @@ def add_admixture_events(num_pops, historical_events, **kwargs):
     return historical_events
 
 
-def random_initializations(tpl_filename="random.tpl"):
+def generate_random_tpl_parameters(tpl_filename="random.tpl"):
     # Randomize adding a ghost population
     add_ghost = random.choice([True, False])
 
@@ -280,4 +282,5 @@ def random_initializations(tpl_filename="random.tpl"):
         + historical_events[::-1],
     )
 
-random_initializations("without_popname.tpl")
+# TODO remove: just for testing
+generate_random_tpl_parameters("without_popname.tpl")
