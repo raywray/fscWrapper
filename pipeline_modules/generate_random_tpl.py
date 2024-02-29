@@ -5,6 +5,7 @@ import re
 # hard-coded params pulled out -- to be provided by user
 NUM_POPS = 3
 SAMPLE_SIZES = [2, 4, 4]
+MUTATION_RATE = 6e-8
 
 
 def write_tpl_file(
@@ -31,7 +32,7 @@ def write_tpl_file(
         "//Per chromosome: Number of contiguous linkage Block: a block is a set of contiguous loci",
         "1",
         "//per Block:data type, number of loci, per gen recomb and mut rates",
-        "FREQ 1 0 MUTRATE OUTEXP",
+        f"FREQ 1 0 {MUTATION_RATE} OUTEXP",
     ]
 
     with open(file_name, "w") as fout:
