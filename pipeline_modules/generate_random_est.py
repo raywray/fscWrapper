@@ -29,7 +29,6 @@ def create_est(input_template_filepath, est_filename="random.est"):
         for line in inFile:
             input_template.append(line.strip())
 
-    # TODO change to read in a file
     # Initialize lists for parameters
     simple_parameters = []
     complex_parameters = []

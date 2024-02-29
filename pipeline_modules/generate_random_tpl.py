@@ -2,11 +2,9 @@ import random
 from math import comb
 import re
 
-NUM_OF_GROUPS = 1
-TDIV = 0
-TPLUS01 = 0
-SAMPLE_SIZES = [1]
-MUT_RATE = 6e-8
+# hard-coded params pulled out
+NUM_POPS = 3
+SAMPLE_SIZES = [2, 4, 4]
 
 
 def write_tpl_file(
@@ -45,8 +43,10 @@ def get_growth_rates(num_pops, events, **kwargs):  # TODO it looks like this fun
     unique_matches = {
         match for event in events for match in re.findall(r"GR_[A-Z]+", event)
     }
+
     GR_ = list(unique_matches)
-    population_order = population_name(**kwargs)
+    population_order = get_all_population_names(**kwargs)
+    # population_order = population_name(**kwargs) TODO deleting
     for el in GR_:
         modified_code = el.replace("GR_", "")
         if modified_code in population_order:
@@ -73,25 +73,20 @@ def single_admixture_event(source, sink, divergence_event=None, **kwargs):
         associated_matrix = re.sub(r"^T.* ([0-9])$", r"\1", divergence_event)
     else:
         return "Error in divergence event specification"
-    source_name = population_name(index=source, **kwargs)
-    sink_name = population_name(index=sink, **kwargs)
+   
+    # Get all populations
+    populations = get_all_population_names(**kwargs)
+    # Assign source & sink names
+    source_name = populations[source]
+    sink_name = populations[sink]
+    # source_name = population_name(index=source, **kwargs) TODO deleting
+    # sink_name = population_name(index=sink, **kwargs) TODO deleting
+   
     event_name = f"TAdm_{sink_name}to{source_name}"
     migrants = f"a_{sink_name}to{source_name}"
     growth_rate = 0
     output = f"{event_name} {source} {sink} {migrants} 1 {growth_rate} {associated_matrix[0]} "
     return output
-
-
-def population_size(index=None, split_SF=False, ghost_present=False):
-    if not split_SF:
-        sample_size = [6, 4]  # TODO this is hard-coded (6 society finches, 4 WRM)
-    else:
-        sample_size = [2, 4, 4]  # TODO this is also hard-coded
-    if ghost_present:
-        sample_size.append(0)
-    if index is None:
-        return sample_size
-    return sample_size[index]
 
 
 def current_migration_matrix(num_populations, **kwargs):
@@ -103,8 +98,12 @@ def current_migration_matrix(num_populations, **kwargs):
             if i == j:
                 matrix_at_i_j = "0"
             else:
-                from_pop = population_name(index=j - 1, **kwargs)
-                to_pop = population_name(index=i - 1, **kwargs)
+                # Assign population names
+                populations = get_all_population_names(**kwargs)
+                from_pop = populations[j - 1]
+                to_pop = populations[i - 1]
+                # from_pop = population_name(index=j - 1, **kwargs) TODO deleting
+                # to_pop = population_name(index=i - 1, **kwargs) TODO deleting
                 matrix_at_i_j = f"MIG_{from_pop}to{to_pop}"
 
             matrix_row.append(matrix_at_i_j)
@@ -167,8 +166,16 @@ def randomize_divergence_order(
     while len(possible_leaves) > 0:
         root = my_sample(possible_roots, k=1)
         offshoot = my_sample(possible_leaves, k=1)
-        root_name = population_name(index=root, **kwargs)
-        offshoot_name = population_name(index=offshoot, **kwargs)
+       
+        # Get all populations
+        populations = get_all_population_names(**kwargs)
+        # Assign root & offshoot names
+        root_name = populations[root]
+        offshoot_name = populations[offshoot]
+
+        # root_name = population_name(index=root, **kwargs) TODO deleting
+        # offshoot_name = population_name(index=offshoot, **kwargs) TODO deleting
+
         time = f"TDIV_{root_name}to{offshoot_name}"
         new_deme_size = f"RES_{root_name}to{offshoot_name}"
         output.append(
@@ -193,29 +200,39 @@ def randomize_divergence_order(
 
     return output
 
-
-def population_name(index=None, split_SF=False, ghost_present=False):
-    if not split_SF:
-        populations = ["SF", "WRM"]
-    else:
-        populations = ["SFWC", "SFP", "WRM"]
+def get_all_population_names(ghost_present=False):
+    populations = []
+    for i in range(0, NUM_POPS):
+        populations.append(str(i))
+   
+   # If ghost population present, add G to populations list
     if ghost_present:
         populations.append("G")
-    if index == None:
-        index = list(range(len(populations)))
-        return [populations[i] for i in index]
-    return populations[index]
+    return populations
+
+# TODO deleting
+# def population_name(index=None, ghost_present=False):
+#     populations = []
+#     for i in range(0, NUM_POPS):
+#         populations.append(str(i))
+#    # If ghost population present, add G to populations list
+#     if ghost_present:
+#         populations.append("G")
+   
+#     if index == None:
+#         return populations
+#     return populations[index]
 
 
 def random_initializations(tpl_filename="random.tpl"):
-    # Determine if ghost pop
+    # Randomize adding a ghost population
     add_ghost = random.choice([True, False])
 
-    # determine total num of pops
-    split_SF = random.choice([True, False])
-    num_pops = 3 if split_SF else 2
-    num_pops += int(add_ghost)
+    # split_SF = random.choice([True, False]) TODO deleting, I don't think we need it
+    # Determine total number of populations (given by user -- + 1 if there is a ghost pop)
+    num_pops = NUM_POPS + 1 if add_ghost else NUM_POPS
 
+    # Define outgroup and set as root node (keep as user-defined right now)
     # place wrm as root node (bc it's the outgroup)
     wrm_index = num_pops - (2 if add_ghost else 1)
     roots = [wrm_index]
@@ -234,13 +251,13 @@ def random_initializations(tpl_filename="random.tpl"):
 
     # create divergence events
     divergence_events = randomize_divergence_order(
-        roots, leaves, split_SF=split_SF, ghost_present=add_ghost
+        roots, leaves, ghost_present=add_ghost
     )
     historical_events = divergence_events
 
     # build migration matrices prior to each divergence event
     mig_mat = matrix_generation(
-        num_pops, divergence_events, split_SF=split_SF, ghost_present=add_ghost
+        num_pops, divergence_events, ghost_present=add_ghost
     )
     mig_info = [str(len(divergence_events) + 1)] + mig_mat
 
@@ -255,7 +272,6 @@ def random_initializations(tpl_filename="random.tpl"):
             admixture_event = random_admixture_event(
                 num_pops,
                 admix_after_these_divergences[i],  # TODO will this always be 0?
-                split_SF=split_SF,
                 ghost_present=add_ghost,
             )
             # don't repeat admix events
@@ -263,21 +279,21 @@ def random_initializations(tpl_filename="random.tpl"):
                 admixture_event = random_admixture_event(
                     num_pops,
                     admix_after_these_divergences[i],  # TODO will this always be 0?
-                    split_SF=split_SF,
                     ghost_present=add_ghost,
                 )
             historical_events.append(admixture_event)
 
     # pull growth rates from hx events
     growth_rates = get_growth_rates(
-        num_pops, events=historical_events, split_SF=split_SF, ghost_present=add_ghost
+        num_pops, events=historical_events, ghost_present=add_ghost
     )
 
     # Effective population sizes
-    Ne = [f"NPOP_{name}" for name in population_name(split_SF=split_SF, ghost_present=add_ghost)]
+    Ne = [f"NPOP_{name}" for name in get_all_population_names(ghost_present=add_ghost)]
 
     # Sample sizes
-    sample_sizes = population_size(split_SF=split_SF, ghost_present=add_ghost)
+    # sample_sizes = population_size(split_SF=split_SF, ghost_present=add_ghost) TODO deleting this
+    sample_sizes = SAMPLE_SIZES + [0] if add_ghost else SAMPLE_SIZES
 
     return write_tpl_file(
         file_name=tpl_filename,
@@ -290,11 +306,4 @@ def random_initializations(tpl_filename="random.tpl"):
         + historical_events[::-1],
     )
 
-
-# TODO modify this function when the time comes
-# random_initializations()
-# TODO write create_est function
-# if NUM_OF_GROUPS==1:
-#     # NUM_OF_TOPOLOGIES=1
-#     write_est_file("test1.est","0","0")
-#     write_tpl_file("test2.tpl","0","0","0","0","0","0")
+random_initializations("without_popname.tpl")
