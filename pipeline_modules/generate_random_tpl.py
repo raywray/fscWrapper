@@ -9,44 +9,25 @@ SAMPLE_SIZES = [1]
 MUT_RATE = 6e-8
 
 
-def write_est_file(file_name, simple_params, complex_params):
-    lines = [
-        "// Priors and rules file",
-        "// *********************",
-        "",
-        "[PARAMETERS]",
-        "0 MUTRATE unif 1e-7 1e-9 output",
-        simple_params,
-        "",
-        "[COMPLEX PARAMETERS]",
-        "",
-        complex_params,
-    ]
-
-    with open(file_name, "w") as fout:
-        fout.writelines("\n".join(lines))
-
 def write_tpl_file(
     file_name, num_pops, Ne, sample_sizes, growth_rates, mig_info, historical_events
 ):
-    # TODO will need to fix the population effective sizes and historical events
-
-    def list_to_string(list):
-        return " ".join(map(str, list))
+    
+    flattened_mig_info = [mig_info[0]] + [item for sublist in mig_info[1:] for item in sublist]
 
     lines = [
         "//Number of population samples (demes)",
         str(num_pops),
         "//Population effective sizes (number of genes)",
-        str(Ne),
+        *Ne,
         "//Sample sizes",
-        str(sample_sizes),
+        *[str(size) for size in sample_sizes],
         "//Growth rates : negative growth implies population expansion",
-        list_to_string(growth_rates),
+        *[str(size) for size in growth_rates],
         "//Number of migration matrices : 0 implies no migration between demes",
-        list_to_string(mig_info),
+        *flattened_mig_info,
         "//historical event: time, source, sink, migrants, new deme size, growth rate, migr mat index",
-        list_to_string(historical_events),
+        *historical_events,
         "//Number of independent loci [chromosome]",
         "1 0",
         "//Per chromosome: Number of contiguous linkage Block: a block is a set of contiguous loci",
@@ -295,7 +276,7 @@ def random_initializations(tpl_filename="random.tpl"):
     )
 
     # Effective population sizes
-    Ne = f"NPOP_{population_name(split_SF=split_SF, ghost_present=add_ghost)}"
+    Ne = [f"NPOP_{name}" for name in population_name(split_SF=split_SF, ghost_present=add_ghost)]
 
     # Sample sizes
     sample_sizes = population_size(split_SF=split_SF, ghost_present=add_ghost)
