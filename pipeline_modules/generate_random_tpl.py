@@ -281,6 +281,3 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl"):
         historical_events=[f"{len(historical_events)} historical events"]
         + historical_events[::-1],
     )
-
-# TODO remove: just for testing
-generate_random_tpl_parameters("without_popname.tpl")
