@@ -83,7 +83,7 @@ def current_migration_matrix(num_populations, **kwargs):
         matrix_row = []
         for j in range(1, num_populations + 1):
             if i == j:
-                matrix_at_i_j = "0"
+                matrix_at_i_j = "0.000"
             else:
                 # Assign population names
                 populations = get_populations(**kwargs)
@@ -192,6 +192,27 @@ def get_populations(ghost_present=False):
         populations.append("G")
     return populations
 
+def add_admixture_events(num_pops, historical_events, **kwargs):
+    num_admixture_events = random.sample(range(comb(num_pops, 2) + 1), 1)[0]
+    
+    if num_admixture_events > 0:
+        admix_after_these_divergences = [0] * num_admixture_events
+        for i in range(1, num_admixture_events):
+            admixture_event = random_admixture_event(
+                num_pops,
+                admix_after_these_divergences[i],  # TODO will this always be 0?
+                **kwargs
+            )
+            # don't repeat admix events
+            while len(set(admixture_event) & set(historical_events)) > 0:
+                admixture_event = random_admixture_event(
+                    num_pops,
+                    admix_after_these_divergences[i],  # TODO will this always be 0?
+                    **kwargs
+                )
+            historical_events.append(admixture_event)
+    return historical_events
+
 
 def random_initializations(tpl_filename="random.tpl"):
     # Randomize adding a ghost population
@@ -200,22 +221,22 @@ def random_initializations(tpl_filename="random.tpl"):
     # Determine total number of populations (given by user -- + 1 if there is a ghost pop)
     num_pops = NUM_POPS + 1 if add_ghost else NUM_POPS
 
-    # Define outgroup and set as root node (keep as user-defined right now)
-    # place wrm as root node (bc it's the outgroup)
-    wrm_index = num_pops - (2 if add_ghost else  1)
-    roots = [wrm_index]
+    # Define outgroup and set as root node
+    # TODO modify this so that this is either user defined OR always 0?
+    outgroup_index = 0
+    roots = [outgroup_index]
 
-    # place the society finch(es) as leaf nodes
-    leaves = list(range(wrm_index))
+    # Place other populations as leaf nodes
+    leaves = list(range(outgroup_index))
 
     # place ghost pop (if there is one) as leaf or root
     if add_ghost:
         # determine if the ghost will be part of the root or leaf nodes in the tree
         ghost_role = random.choice(["root", "leaf"])
         if ghost_role == "root":
-            roots.append(wrm_index + 1)
+            roots.append(outgroup_index + 1)
         else:
-            leaves.append(wrm_index + 1)
+            leaves.append(outgroup_index + 1)
 
     # create divergence events
     divergence_events = randomize_divergence_order(
@@ -224,34 +245,22 @@ def random_initializations(tpl_filename="random.tpl"):
     historical_events = divergence_events
 
     # build migration matrices prior to each divergence event
-    mig_mat = matrix_generation(
+    migration_matrix = matrix_generation(
         num_pops, divergence_events, ghost_present=add_ghost
     )
-    mig_info = [str(len(divergence_events) + 1)] + mig_mat
+    migration_info = [str(len(divergence_events) + 1)] + migration_matrix
 
-    # Was going to add admixing to periods after divergence
-    # num_admixture_events <- sample(0:length(divergence_events), 1)
-    # But example code only shows for the current period, so I'll do that
-    # Admixture
-    num_admixture_events = random.sample(range(comb(num_pops, 2) + 1), 1)[0]
-    if num_admixture_events > 0:
-        admix_after_these_divergences = [0] * num_admixture_events
-        for i in range(1, num_admixture_events):
-            admixture_event = random_admixture_event(
-                num_pops,
-                admix_after_these_divergences[i],  # TODO will this always be 0?
-                ghost_present=add_ghost,
-            )
-            # don't repeat admix events
-            while len(set(admixture_event) & set(historical_events)) > 0:
-                admixture_event = random_admixture_event(
-                    num_pops,
-                    admix_after_these_divergences[i],  # TODO will this always be 0?
-                    ghost_present=add_ghost,
-                )
-            historical_events.append(admixture_event)
+    '''
+    TODO -- should we do this?
+    Was going to add admixing to periods after divergence
+    num_admixture_events <- sample(0:length(divergence_events), 1)
+    But example code only shows for the current period, so I'll do that
+    '''
 
-    # pull growth rates from hx events
+    # Add admixture event(s) to historical events
+    historical_events = add_admixture_events(num_pops, historical_events, ghost_present=add_ghost)
+
+    # Get growth rates
     growth_rates = get_growth_rates(num_pops)
 
     # Effective population sizes
@@ -266,7 +275,7 @@ def random_initializations(tpl_filename="random.tpl"):
         effective_pop_sizes=Ne,
         sample_sizes=sample_sizes,
         growth_rates=["0"] * len(growth_rates),
-        migration_info=mig_info,
+        migration_info=migration_info,
         historical_events=[f"{len(historical_events)} historical events"]
         + historical_events[::-1],
     )
