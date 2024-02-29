@@ -2,22 +2,22 @@ import random
 from math import comb
 import re
 
-# hard-coded params pulled out
+# hard-coded params pulled out -- to be provided by user
 NUM_POPS = 3
 SAMPLE_SIZES = [2, 4, 4]
 
 
 def write_tpl_file(
-    file_name, num_pops, Ne, sample_sizes, growth_rates, mig_info, historical_events
+    file_name, num_pops, effective_pop_sizes, sample_sizes, growth_rates, migration_info, historical_events
 ):
     
-    flattened_mig_info = [mig_info[0]] + [item for sublist in mig_info[1:] for item in sublist]
+    flattened_mig_info = [migration_info[0]] + [item for sublist in migration_info[1:] for item in sublist]
 
     lines = [
         "//Number of population samples (demes)",
         str(num_pops),
         "//Population effective sizes (number of genes)",
-        *Ne,
+        *effective_pop_sizes,
         "//Sample sizes",
         *[str(size) for size in sample_sizes],
         "//Growth rates : negative growth implies population expansion",
@@ -37,21 +37,10 @@ def write_tpl_file(
     with open(file_name, "w") as fout:
         fout.writelines("\n".join(lines))
 
-def get_growth_rates(num_pops, events, **kwargs):  # TODO it looks like this function only ever returns 0s, so look into that
-    gr = ["0"] * num_pops
 
-    unique_matches = {
-        match for event in events for match in re.findall(r"GR_[A-Z]+", event)
-    }
-
-    GR_ = list(unique_matches)
-    population_order = get_all_population_names(**kwargs)
-    # population_order = population_name(**kwargs) TODO deleting
-    for el in GR_:
-        modified_code = el.replace("GR_", "")
-        if modified_code in population_order:
-            gr[population_order.index(modified_code)] = el
-    return gr
+# TODO potentailly add functionality for this to return + or - growth rates
+def get_growth_rates(num_pops):
+    return ["0"] * num_pops
 
 
 def random_admixture_event(num_pops, divergence_event, **kwargs):
@@ -75,12 +64,10 @@ def single_admixture_event(source, sink, divergence_event=None, **kwargs):
         return "Error in divergence event specification"
    
     # Get all populations
-    populations = get_all_population_names(**kwargs)
+    populations = get_populations(**kwargs)
     # Assign source & sink names
     source_name = populations[source]
     sink_name = populations[sink]
-    # source_name = population_name(index=source, **kwargs) TODO deleting
-    # sink_name = population_name(index=sink, **kwargs) TODO deleting
    
     event_name = f"TAdm_{sink_name}to{source_name}"
     migrants = f"a_{sink_name}to{source_name}"
@@ -99,11 +86,9 @@ def current_migration_matrix(num_populations, **kwargs):
                 matrix_at_i_j = "0"
             else:
                 # Assign population names
-                populations = get_all_population_names(**kwargs)
+                populations = get_populations(**kwargs)
                 from_pop = populations[j - 1]
                 to_pop = populations[i - 1]
-                # from_pop = population_name(index=j - 1, **kwargs) TODO deleting
-                # to_pop = population_name(index=i - 1, **kwargs) TODO deleting
                 matrix_at_i_j = f"MIG_{from_pop}to{to_pop}"
 
             matrix_row.append(matrix_at_i_j)
@@ -168,13 +153,10 @@ def randomize_divergence_order(
         offshoot = my_sample(possible_leaves, k=1)
        
         # Get all populations
-        populations = get_all_population_names(**kwargs)
+        populations = get_populations(**kwargs)
         # Assign root & offshoot names
         root_name = populations[root]
         offshoot_name = populations[offshoot]
-
-        # root_name = population_name(index=root, **kwargs) TODO deleting
-        # offshoot_name = population_name(index=offshoot, **kwargs) TODO deleting
 
         time = f"TDIV_{root_name}to{offshoot_name}"
         new_deme_size = f"RES_{root_name}to{offshoot_name}"
@@ -200,7 +182,7 @@ def randomize_divergence_order(
 
     return output
 
-def get_all_population_names(ghost_present=False):
+def get_populations(ghost_present=False):
     populations = []
     for i in range(0, NUM_POPS):
         populations.append(str(i))
@@ -210,31 +192,17 @@ def get_all_population_names(ghost_present=False):
         populations.append("G")
     return populations
 
-# TODO deleting
-# def population_name(index=None, ghost_present=False):
-#     populations = []
-#     for i in range(0, NUM_POPS):
-#         populations.append(str(i))
-#    # If ghost population present, add G to populations list
-#     if ghost_present:
-#         populations.append("G")
-   
-#     if index == None:
-#         return populations
-#     return populations[index]
-
 
 def random_initializations(tpl_filename="random.tpl"):
     # Randomize adding a ghost population
     add_ghost = random.choice([True, False])
 
-    # split_SF = random.choice([True, False]) TODO deleting, I don't think we need it
     # Determine total number of populations (given by user -- + 1 if there is a ghost pop)
     num_pops = NUM_POPS + 1 if add_ghost else NUM_POPS
 
     # Define outgroup and set as root node (keep as user-defined right now)
     # place wrm as root node (bc it's the outgroup)
-    wrm_index = num_pops - (2 if add_ghost else 1)
+    wrm_index = num_pops - (2 if add_ghost else  1)
     roots = [wrm_index]
 
     # place the society finch(es) as leaf nodes
@@ -284,24 +252,21 @@ def random_initializations(tpl_filename="random.tpl"):
             historical_events.append(admixture_event)
 
     # pull growth rates from hx events
-    growth_rates = get_growth_rates(
-        num_pops, events=historical_events, ghost_present=add_ghost
-    )
+    growth_rates = get_growth_rates(num_pops)
 
     # Effective population sizes
-    Ne = [f"NPOP_{name}" for name in get_all_population_names(ghost_present=add_ghost)]
+    Ne = [f"NPOP_{name}" for name in get_populations(ghost_present=add_ghost)]
 
     # Sample sizes
-    # sample_sizes = population_size(split_SF=split_SF, ghost_present=add_ghost) TODO deleting this
     sample_sizes = SAMPLE_SIZES + [0] if add_ghost else SAMPLE_SIZES
 
     return write_tpl_file(
         file_name=tpl_filename,
         num_pops=num_pops,
-        Ne=Ne,
+        effective_pop_sizes=Ne,
         sample_sizes=sample_sizes,
         growth_rates=["0"] * len(growth_rates),
-        mig_info=mig_info,
+        migration_info=mig_info,
         historical_events=[f"{len(historical_events)} historical events"]
         + historical_events[::-1],
     )
