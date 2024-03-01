@@ -142,7 +142,7 @@ def get_sample(sampling_options, **kwargs):
 def randomize_divergence_order(
     root_population_indices, leaf_population_indices, **kwargs
 ):
-    migrants = 1
+    migrants = 1 # TODO are these hard-coded? 
     growth_rate = 0
     output = []
     possible_roots = root_population_indices.copy()
@@ -225,8 +225,8 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl"):
     num_pops = NUM_POPS + 1 if add_ghost else NUM_POPS
 
     # Define outgroup and set as root node
-    # TODO modify this so that this is either user defined OR always 0?
-    outgroup_index = 0
+    # TODO modify this so that this is either user defined OR constant (but never 0). Either 1 or 2 in OG code.
+    outgroup_index = random.choice([2, 1])
     roots = [outgroup_index]
 
     # Place other populations as leaf nodes
