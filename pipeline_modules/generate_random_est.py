@@ -5,7 +5,7 @@ from itertools import chain
 def estimation(simple_params, complex_params):
     return (
         [
-            "//Priors and rules file",
+            "// Priors and rules file",
             "// *********************",
             "",
             "[PARAMETERS]",
@@ -58,10 +58,13 @@ def create_est(input_template_filepath, est_filename="random.est"):
     current_migration_parameter_location = input_template[
         migration_matrix_0_location:migration_matrix_1_location
     ]
-    current_migration_parameters = list(
-        set(
-            chain.from_iterable(
-                [item.split(" ") for item in current_migration_parameter_location]
+    # print(current_migration_parameter_location)
+    current_migration_parameters = sorted(
+        list(
+            set(
+                chain.from_iterable(
+                    [item.split(" ") for item in current_migration_parameter_location]
+                )
             )
         )
     )[1:]
@@ -87,7 +90,7 @@ def create_est(input_template_filepath, est_filename="random.est"):
     time_parameter_locations = [
         i for i, item in enumerate(input_template) if re.search("TDIV|TAdm", item)
     ]
-    pattern = r"^(TDIV|TAdm)_[0-9]+to[0-9]+"
+    pattern = r"^(TDIV|TAdm)_[a-zA-Z0-9]+to[a-zA-Z0-9]+"
     time_parameters = [
         re.match(pattern, input_template[i]).group()
         for i in time_parameter_locations
