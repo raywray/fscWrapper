@@ -2,12 +2,6 @@ import random
 from math import comb
 import re
 
-# hard-coded params pulled out -- to be provided by user
-NUM_POPS = 3
-SAMPLE_SIZES = [2, 4, 4]
-MUTATION_RATE = 6e-8
-
-
 def write_tpl_file(
     file_name, num_pops, effective_pop_sizes, sample_sizes, growth_rates, migration_info, historical_events
 ):
@@ -32,7 +26,7 @@ def write_tpl_file(
         "//Per chromosome: Number of contiguous linkage Block: a block is a set of contiguous loci",
         "1",
         "//per Block:data type, number of loci, per gen recomb and mut rates",
-        f"FREQ 1 0 {MUTATION_RATE} OUTEXP",
+        f"FREQ 1 0 MUTRATE OUTEXP",
     ]
 
     with open(file_name, "w") as fout:
@@ -48,8 +42,8 @@ def random_admixture_event(num_pops, divergence_event, **kwargs):
     source = get_sample(list(range(0, num_pops)), k=1)
     difference = list(set(list(range(0, num_pops))) - set([source]))
     sink = get_sample(difference, k=1)
-    output = single_admixture_event(source, sink, divergence_event, **kwargs)
-    output += single_admixture_event(sink, source, divergence_event, **kwargs)
+    output = single_admixture_event(source, sink, divergence_event, num_pops=num_pops, **kwargs)
+    output += single_admixture_event(sink, source, divergence_event, num_pops=num_pops, **kwargs)
     return output
 
 
@@ -87,7 +81,7 @@ def current_migration_matrix(num_pops, **kwargs):
                 matrix_at_i_j = "0.000"
             else:
                 # Assign population names
-                populations = get_populations(**kwargs)
+                populations = get_populations(num_pops=num_pops, **kwargs)
                 from_pop = populations[j - 1]
                 to_pop = populations[i - 1]
                 matrix_at_i_j = f"MIG_{from_pop}to{to_pop}"
@@ -183,9 +177,10 @@ def randomize_divergence_order(
 
     return output
 
-def get_populations(ghost_present=False):
+def get_populations(ghost_present=False, num_pops=0):
     populations = []
-    for i in range(0, NUM_POPS):
+    population_range = num_pops -1 if ghost_present else num_pops
+    for i in range(0, population_range):
         populations.append(str(i))
    
    # If ghost population present add G to populations list
@@ -217,12 +212,12 @@ def add_admixture_events(num_pops, historical_events, **kwargs):
     return historical_events
 
 
-def generate_random_tpl_parameters(tpl_filename="random.tpl"):
+def generate_random_tpl_parameters(tpl_filename="random.tpl", user_given_num_pops=0, sample_sizes=[]):
     # Randomize adding a ghost population
     add_ghost = random.choice([True, False])
 
     # Determine total number of populations (given by user -- + 1 if there is a ghost pop)
-    num_pops = NUM_POPS + 1 if add_ghost else NUM_POPS
+    num_pops = user_given_num_pops + 1 if add_ghost else user_given_num_pops
 
     # Define outgroup and set as root node
     # TODO modify this so that this is either user defined OR constant (but never 0). Either 1 or 2 in OG code.
@@ -243,7 +238,7 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl"):
 
     # create divergence events
     divergence_events = randomize_divergence_order(
-        roots, leaves, ghost_present=add_ghost
+        roots, leaves, ghost_present=add_ghost, num_pops=num_pops
     )
     historical_events = divergence_events
 
@@ -267,16 +262,13 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl"):
     growth_rates = get_growth_rates(num_pops)
 
     # Effective population sizes
-    Ne = [f"NPOP_{name}" for name in get_populations(ghost_present=add_ghost)]
-
-    # Sample sizes
-    sample_sizes = SAMPLE_SIZES + [0] if add_ghost else SAMPLE_SIZES
+    Ne = [f"NPOP_{name}" for name in get_populations(ghost_present=add_ghost, num_pops=num_pops)]
 
     return write_tpl_file(
         file_name=tpl_filename,
         num_pops=num_pops,
         effective_pop_sizes=Ne,
-        sample_sizes=sample_sizes,
+        sample_sizes=sample_sizes + [0] if add_ghost else sample_sizes,
         growth_rates=["0"] * len(growth_rates),
         migration_info=migration_info,
         historical_events=[f"{len(historical_events)} historical events"]
