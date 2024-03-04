@@ -2,7 +2,7 @@ import re
 from itertools import chain
 
 
-def estimation(simple_params, complex_params):
+def estimation(simple_params, complex_params, mutrate_min=0, mutrate_max=0):
     return (
         [
             "// Priors and rules file",
@@ -10,7 +10,7 @@ def estimation(simple_params, complex_params):
             "",
             "[PARAMETERS]",
             "//#isInt? #name #dist. #min #max",
-            "0 MUTRATE unif 1e-7 1e-9 output",
+            f"0 MUTRATE unif {mutrate_min} {mutrate_max} output",
         ]
         + [param for param in simple_params]
         + [
@@ -113,7 +113,7 @@ def get_time_parameters(input_template):
 
 
 # this function generates an estimation file for a tpl template
-def create_est(input_template_filepath, est_filename="random.est"):
+def create_est(input_template_filepath, est_filename="random.est", **kwargs):
     input_template = []
 
     with open(input_template_filepath, "r") as inFile:
@@ -153,7 +153,7 @@ def create_est(input_template_filepath, est_filename="random.est"):
     simple_parameters.extend(get_admixture_parameters(input_template))
 
     # Combine parameters & write to a file
-    est = estimation(simple_parameters, complex_parameters)
+    est = estimation(simple_parameters, complex_parameters, **kwargs)
     with open(est_filename, "w") as file:
         for line in est:
             file.write(line + "\n")
