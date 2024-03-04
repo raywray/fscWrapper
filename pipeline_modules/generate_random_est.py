@@ -22,28 +22,20 @@ def estimation(simple_params, complex_params):
     )
 
 
-# this function generates an estimation file for a tpl template
-def create_est(input_template_filepath, est_filename="random.est"):
-    input_template = []
-
-    with open(input_template_filepath, "r") as inFile:
-        for line in inFile:
-            input_template.append(line.strip())
-
-    # Initialize lists for parameters
-    simple_parameters = []
-    complex_parameters = []
-
-    # Population parameters
+def get_population_parameters(input_template):
     population_parameters = [line for line in input_template if "NPOP_" in line]
-    formatted_number = "{:,}".format(30 * 10**4).replace(",", "")
-    param_line = [
+    formatted_number = "{:,}".format(30 * 10**4).replace(
+        ",", ""
+    )  # TODO I think this should be user given?
+    formatted_population_parameters = [
         "1 {} unif 100 {} output".format(param, formatted_number)
         for param in population_parameters
     ]
-    simple_parameters.extend(param_line)
+    return formatted_population_parameters
 
-    # Migration rate parameters
+
+def get_migration_parameters(input_template):
+    # get parameters from the migraion matrix 0
     migration_matrix_0_location = [
         i
         for i, item in enumerate(input_template)
@@ -58,7 +50,8 @@ def create_est(input_template_filepath, est_filename="random.est"):
     current_migration_parameter_location = input_template[
         migration_matrix_0_location:migration_matrix_1_location
     ]
-    # print(current_migration_parameter_location)
+
+    # extract only the MIG_POP information
     current_migration_parameters = sorted(
         list(
             set(
@@ -69,33 +62,79 @@ def create_est(input_template_filepath, est_filename="random.est"):
         )
     )[1:]
 
-    param_line = [
+    # create migration parameters
+    migration_parameters = [
         "0 " + param + " logunif 1e-10 1e-1 output"
         for param in current_migration_parameters
     ]
-    simple_parameters.extend(param_line)
+    return migration_parameters
 
-    # Resizing parameters
+
+def get_parameter_pattern(prefix):
+    return rf"{prefix}_[a-zA-Z0-9]+"
+
+
+def resize_parameters(input_template):
+    resized_parameters = []
     if any("RES_" in line for line in input_template):
         resize_parameters = set(
-            re.findall(r"(RES_[a-zA-Z0-9_]+)", " ".join(input_template))
+            re.findall(get_parameter_pattern("RES"), " ".join(input_template))
         )
-        param_line = [
-            "0 {} unif 0 100 output".format(param) for param in resize_parameters
+        resized_parameters = [
+            "0 {} unif 0 100 output".format(param)
+            for param in resize_parameters  # TODO is the 100 hardcoded?
         ]
-        simple_parameters.extend(param_line)
+    return resized_parameters
 
-    # Time parameters
+
+def get_admixture_parameters(input_template):
+    admixture_parameters = set(
+        re.findall(get_parameter_pattern("a"), " ".join(input_template))
+    )
+    formatted_admixture_parameters = [
+        "0 {} unif 0 0.25 output".format(param) for param in admixture_parameters
+    ]
+    return formatted_admixture_parameters
+
+
+def get_time_parameters(input_template):
     # Find all occurrences of time parameters (TDIV or TAdm) in the input template
+
     time_parameter_locations = [
         i for i, item in enumerate(input_template) if re.search("TDIV|TAdm", item)
     ]
-    pattern = r"^(TDIV|TAdm)_[a-zA-Z0-9]+to[a-zA-Z0-9]+"
+    time_pattern = get_parameter_pattern("^(TDIV|TAdm)")
     time_parameters = [
-        re.match(pattern, input_template[i]).group()
+        re.match(time_pattern, input_template[i]).group()
         for i in time_parameter_locations
-        if re.match(pattern, input_template[i])
+        if re.match(time_pattern, input_template[i])
     ]
+    return time_parameters
+
+
+# this function generates an estimation file for a tpl template
+def create_est(input_template_filepath, est_filename="random.est"):
+    input_template = []
+
+    with open(input_template_filepath, "r") as inFile:
+        for line in inFile:
+            input_template.append(line.strip())
+
+    # Initialize lists for parameters
+    simple_parameters = []
+    complex_parameters = []
+
+    # Population parameters
+    simple_parameters.extend(get_population_parameters(input_template))
+
+    # Migration rate parameters
+    simple_parameters.extend(get_migration_parameters(input_template))
+
+    # Resizing parameters
+    simple_parameters.extend(resize_parameters(input_template))
+
+    # Time parameters
+    time_parameters = get_time_parameters(input_template)
 
     # Handle the time space between each event
     if len(time_parameters) == 1:
@@ -111,13 +150,7 @@ def create_est(input_template_filepath, est_filename="random.est"):
             )
 
     # Admixture parameters
-    admixture_parameters = set(
-        re.findall(r"(a_[a-zA-Z0-9_]+)", " ".join(input_template))
-    )
-    param_line = [
-        "0 {} unif 0 0.25 output".format(param) for param in admixture_parameters
-    ]
-    simple_parameters.extend(param_line)
+    simple_parameters.extend(get_admixture_parameters(input_template))
 
     # Combine parameters & write to a file
     est = estimation(simple_parameters, complex_parameters)
