@@ -10,7 +10,11 @@ def estimation(simple_params, complex_params, mutation_rate_dist):
             "",
             "[PARAMETERS]",
             "//#isInt? #name #dist. #min #max",
-            f"0 MUTRATE {mutation_rate_dist["type"]} {mutation_rate_dist["min"]} {mutation_rate_dist["max"]} output",
+            "0 MUTRATE {} {} {} output".format(
+                mutation_rate_dist["type"],
+                mutation_rate_dist["min"],
+                mutation_rate_dist["max"],
+            ),
         ]
         + [param for param in simple_params]
         + [
@@ -25,13 +29,15 @@ def estimation(simple_params, complex_params, mutation_rate_dist):
 def get_population_parameters(input_template, ne_dist):
     population_parameters = [line for line in input_template if "NPOP_" in line]
     formatted_population_parameters = [
-        "1 {} {} {} {} output".format(param, ne_dist["type"], ne_dist["min"], ne_dist["max"])
+        "1 {} {} {} {} output".format(
+            param, ne_dist["type"], ne_dist["min"], ne_dist["max"]
+        )
         for param in population_parameters
     ]
     return formatted_population_parameters
 
 
-def get_migration_parameters(input_template):
+def get_migration_parameters(input_template, mig_dist):
     # get parameters from the migraion matrix 0
     migration_matrix_0_location = [
         i
@@ -61,7 +67,9 @@ def get_migration_parameters(input_template):
 
     # create migration parameters
     migration_parameters = [
-        "0 " + param + " logunif 1e-10 1e-1 output"
+        "0 {} {} {} {} output".format(
+            param, mig_dist["type"], mig_dist["min"], mig_dist["max"]
+        )
         for param in current_migration_parameters
     ]
     return migration_parameters
@@ -78,7 +86,9 @@ def resize_parameters(input_template, resized_dist):
             re.findall(get_parameter_pattern("RES"), " ".join(input_template))
         )
         resized_parameters = [
-            "0 {} {} {} {} output".format(param, resized_dist["type"], resized_dist["min"], resized_dist["max"])
+            "0 {} {} {} {} output".format(
+                param, resized_dist["type"], resized_dist["min"], resized_dist["max"]
+            )
             for param in resize_parameters
         ]
     return resized_parameters
@@ -89,13 +99,15 @@ def get_admixture_parameters(input_template, admix_dist):
         re.findall(get_parameter_pattern("a"), " ".join(input_template))
     )
     formatted_admixture_parameters = [
-        "0 {} {} {} {} output".format(param, admix_dist["type"], admix_dist["min"], admix_dist["max"]) 
+        "0 {} {} {} {} output".format(
+            param, admix_dist["type"], admix_dist["min"], admix_dist["max"]
+        )
         for param in admixture_parameters
     ]
     return formatted_admixture_parameters
 
 
-def get_time_parameters(input_template):
+def get_time_parameters(input_template, time_dist):
     simple_time_parameters = []
     complex_time_parameters = []
 
@@ -110,15 +122,36 @@ def get_time_parameters(input_template):
         if re.match(time_pattern, input_template[i])
     ]
 
-     # Handle the time space between each event
+    # Handle the time space between each event
     if len(time_parameters) == 1:
-        simple_time_parameters.append(f"1 {time_parameters[0]} unif 1 5000 output")
+        simple_time_parameters.append(
+            "1 {} {} {} {} output".format(
+                time_parameters[0],
+                time_dist["type"],
+                time_dist["single_min"],
+                time_dist["single_max"],
+            )
+        )
     elif len(time_parameters) > 1:
-        simple_time_parameters.append(f"1 {time_parameters[0]} unif 1 600 output")
+        simple_time_parameters.append(
+            "1 {} {} {} {} output".format(
+                time_parameters[0],
+                time_dist["type"],
+                time_dist["multiple_min"],
+                time_dist["multiple_max"],
+            )
+        )
         for i in range(1, len(time_parameters)):
             # Define the space between each event
             extra_time_parameter = f"T_{i}_{i+1}"
-            simple_time_parameters.append(f"1 {extra_time_parameter} unif 0 500 hide")
+            simple_time_parameters.append(
+                "1 {} {} {} {} hide".format(
+                    extra_time_parameter,
+                    time_dist["type"],
+                    time_dist["extra_min"],
+                    time_dist["extra_max"],
+                )
+            )
             complex_time_parameters.append(
                 f"1 {time_parameters[i]} = {extra_time_parameter} + {time_parameters[i-1]} output"
             )
@@ -127,12 +160,14 @@ def get_time_parameters(input_template):
 
 # this function generates an estimation file for a tpl template
 def create_est(
-        input_template_filepath, 
-        est_filename="random.est", 
-        mutation_rate_dist={}, 
-        ne_dist={},
-        resized_dist={},
-        admix_dist={}
+    input_template_filepath,
+    est_filename="random.est",
+    mutation_rate_dist={},
+    ne_dist={},
+    resized_dist={},
+    admix_dist={},
+    time_dist={},
+    mig_dist={}
 ):
     input_template = []
 
@@ -148,13 +183,15 @@ def create_est(
     simple_parameters.extend(get_population_parameters(input_template, ne_dist))
 
     # Migration rate parameters
-    simple_parameters.extend(get_migration_parameters(input_template))
+    simple_parameters.extend(get_migration_parameters(input_template, mig_dist))
 
     # Resizing parameters
     simple_parameters.extend(resize_parameters(input_template, resized_dist))
 
     # Time parameters
-    simple_time_parameters, complex_time_parameters = get_time_parameters(input_template)
+    simple_time_parameters, complex_time_parameters = get_time_parameters(
+        input_template, time_dist
+    )
     simple_parameters.extend(simple_time_parameters)
     complex_parameters.extend(complex_time_parameters)
 
