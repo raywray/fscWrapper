@@ -96,8 +96,10 @@ def get_admixture_parameters(input_template, admix_dist):
 
 
 def get_time_parameters(input_template):
-    # Find all occurrences of time parameters (TDIV or TAdm) in the input template
+    simple_time_parameters = []
+    complex_time_parameters = []
 
+    # Find all occurrences of time parameters (TDIV or TAdm) in the input template
     time_parameter_locations = [
         i for i, item in enumerate(input_template) if re.search("TDIV|TAdm", item)
     ]
@@ -107,7 +109,20 @@ def get_time_parameters(input_template):
         for i in time_parameter_locations
         if re.match(time_pattern, input_template[i])
     ]
-    return time_parameters
+
+     # Handle the time space between each event
+    if len(time_parameters) == 1:
+        simple_time_parameters.append(f"1 {time_parameters[0]} unif 1 5000 output")
+    elif len(time_parameters) > 1:
+        simple_time_parameters.append(f"1 {time_parameters[0]} unif 1 600 output")
+        for i in range(1, len(time_parameters)):
+            # Define the space between each event
+            extra_time_parameter = f"T_{i}_{i+1}"
+            simple_time_parameters.append(f"1 {extra_time_parameter} unif 0 500 hide")
+            complex_time_parameters.append(
+                f"1 {time_parameters[i]} = {extra_time_parameter} + {time_parameters[i-1]} output"
+            )
+    return simple_time_parameters, complex_time_parameters
 
 
 # this function generates an estimation file for a tpl template
@@ -139,20 +154,9 @@ def create_est(
     simple_parameters.extend(resize_parameters(input_template, resized_dist))
 
     # Time parameters
-    time_parameters = get_time_parameters(input_template)
-
-    # Handle the time space between each event
-    if len(time_parameters) == 1:
-        simple_parameters.append(f"1 {time_parameters[0]} unif 1 5000 output")
-    elif len(time_parameters) > 1:
-        simple_parameters.append(f"1 {time_parameters[0]} unif 1 600 output")
-        for i in range(1, len(time_parameters)):
-            # Define the space between each event
-            extra_time_parameter = f"T_{i}_{i+1}"
-            simple_parameters.append(f"1 {extra_time_parameter} unif 0 500 hide")
-            complex_parameters.append(
-                f"1 {time_parameters[i]} = {extra_time_parameter} + {time_parameters[i-1]} output"
-            )
+    simple_time_parameters, complex_time_parameters = get_time_parameters(input_template)
+    simple_parameters.extend(simple_time_parameters)
+    complex_parameters.extend(complex_time_parameters)
 
     # Admixture parameters
     simple_parameters.extend(get_admixture_parameters(input_template, admix_dist))
