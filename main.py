@@ -1,5 +1,9 @@
 import os
-from pipeline_modules import generate_random_tpl, generate_random_est
+from pipeline_modules import (
+    generate_random_tpl,
+    generate_random_est,
+    determine_best_fit_model,
+)
 
 # User Provided Input
 NUM_POPS = 3
@@ -19,9 +23,10 @@ TIME_DIST = {
     "extra_min": 0,
 }
 
-def run_simluations():
-     # run x number of fsc simulations
-    for i in range(1, 11):
+
+def run_simluations(num_of_sims):
+    # run x number of fsc simulations
+    for i in range(1, num_of_sims + 1):
         # make & move to directory
         output_folder_name = f"output/run_{i}"
         os.mkdir(output_folder_name)
@@ -57,9 +62,19 @@ def run_simluations():
         # go back to root directory
         os.chdir("../..")
 
+
 def run():
     # Create output directory
     if not os.path.exists("output"):
         os.mkdir("output")
-
    
+    num_of_sims = 10
+   
+    run_simluations(num_of_sims)
+   
+    best_fit_run = determine_best_fit_model.get_best_lhoods(num_of_sims)
+    print("best fit run: run", best_fit_run)
+
+
+if __name__ == "__main__":
+    run()
