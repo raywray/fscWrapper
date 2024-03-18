@@ -23,6 +23,14 @@ TIME_DIST = {
     "extra_min": 0,
 }
 
+def execute_command(command):
+    os.system(command)
+
+
+def create_directory(dir_path):
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+
 
 def run_simluations(num_of_sims):
     # run x number of fsc simulations
@@ -54,10 +62,9 @@ def run_simluations(num_of_sims):
         )
 
         # Run fsc
-        # this is the one that the r code ran
-        # fsc27093 -t LD-pruned_SNPs.tpl -e LD-pruned_SNPs.est -m -n 10000 -L 50 -s 0 -M
-        command = f"fsc28 -t {tpl_filename} -e {est_filename} -d -0 -C 10 -n 10000 -L 40 -s 0 -M"  # TODO figure out which other params to use
-        # os.system(command) TODO uncomment when ready
+        command = f"fsc28 -t {tpl_filename} -e {est_filename} -d -0 -C 10 -n 10000 -L 40 -s 0 -M"
+        # execute_command(command) TODO uncomment when ready
+        print("COMMAND: ", command)
 
         # go back to root directory
         os.chdir("../..")
@@ -65,15 +72,16 @@ def run_simluations(num_of_sims):
 
 def run():
     # Create output directory
-    if not os.path.exists("output"):
-        os.mkdir("output")
+    create_directory("output")
    
-    num_of_sims = 10
+    num_of_sims = 10 # hard-coded, but can change
    
+    # run simulations
     run_simluations(num_of_sims)
    
-    best_fit_run = determine_best_fit_model.get_best_lhoods(num_of_sims)
-    print("best fit run: run", best_fit_run)
+    # find the best fit run
+    # best_fit_run = determine_best_fit_model.get_best_lhoods(num_of_sims)
+    # print("best fit run: run", best_fit_run)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ def find_lhoods(num_of_sims):
     results = []
 
     for i in range(1, num_of_sims + 1):
-        best_lhoods_filepath = f"output/run_{i}/run_{i}.bestlhoods"  # TODO change the run_{i}.best... to random
+        best_lhoods_filepath = f"output/run_{i}/random_{i}.bestlhoods"
 
         with open(f"{best_lhoods_filepath}", "r") as best_lhoods_file:
             for line in best_lhoods_file:
