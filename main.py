@@ -6,6 +6,7 @@ from pipeline_modules import (
 )
 
 # User Provided Input
+FSC_INPUT_PREFIX = "hops"
 NUM_POPS = 3
 SAMPLE_SIZES = [2, 4, 4]
 MUTATION_RATE_DIST = {"min": 1e-7, "max": 1e-9, "type": "unif"}
@@ -35,16 +36,19 @@ def create_directory(dir_path):
 def run_simluations(num_of_sims):
     # run x number of fsc simulations
     for i in range(1, num_of_sims + 1):
-        # make & move to directory
+        # make directory
         output_folder_name = f"output/run_{i}"
         os.mkdir(output_folder_name)
+
+        # copy SFS into new dir
+        os.system(f"cp {FSC_INPUT_PREFIX}* {output_folder_name}")
+        
+        # move into new dir
         os.chdir(output_folder_name)
-
-        # TODO move other output files (sfs, etc.) to this directory
-
+    
         # Create filenames
-        tpl_filename = f"random_{i}.tpl"
-        est_filename = f"random_{i}.est"
+        tpl_filename = f"{FSC_INPUT_PREFIX}.tpl"
+        est_filename = f"{FSC_INPUT_PREFIX}.est"
 
         # Generate random tpl & est files
         generate_random_tpl.generate_random_tpl_parameters(
@@ -62,9 +66,8 @@ def run_simluations(num_of_sims):
         )
 
         # Run fsc
-        command = f"fsc28 -t {tpl_filename} -e {est_filename} -d -0 -C 10 -n 10000 -L 40 -s 0 -M"
-        # execute_command(command) TODO uncomment when ready
-        print("COMMAND: ", command)
+        command = f"fsc28 -t {tpl_filename} -e {est_filename} -m --multiSFS -0 -C 10 -n 10000 -L 40 -s 0 -M"
+        execute_command(command)
 
         # go back to root directory
         os.chdir("../..")
@@ -74,7 +77,7 @@ def run():
     # Create output directory
     create_directory("output")
    
-    num_of_sims = 10 # hard-coded, but can change
+    num_of_sims = 1 # hard-coded, but can change
    
     # run simulations
     run_simluations(num_of_sims)
