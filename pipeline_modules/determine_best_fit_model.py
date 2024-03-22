@@ -1,15 +1,16 @@
-def find_lhoods(num_of_sims):
+def find_lhoods(num_of_sims, prefix):
     results = []
 
     for i in range(1, num_of_sims + 1):
-        best_lhoods_filepath = f"output/run_{i}/random_{i}.bestlhoods"
-
+        best_lhoods_filepath = f"output/run_{i}/{prefix}/{prefix}.bestlhoods"
+        
         with open(f"{best_lhoods_filepath}", "r") as best_lhoods_file:
-            for line in best_lhoods_file:
-                if "MaxEstLhood" not in line:
-                    parts = line.split()
-                    max_est_lhood_index = 3
-                    results.append((i, float(parts[max_est_lhood_index])))
+            header = next(best_lhoods_file).split()
+            max_est_index = header.index("MaxEstLhood")
+            values = next(best_lhoods_file).split()
+            max_est_lhood = values[max_est_index]
+            results.append((i, max_est_lhood))
+                
 
     sorted_results = sorted(results, key=lambda x: x[1], reverse=True)
     return sorted_results
@@ -23,8 +24,8 @@ def get_best_fit_model(results):
     return best_fit_run
 
 
-def get_best_lhoods(num_of_sims):
-    best_lhood_resuls = find_lhoods(num_of_sims)
+def get_best_lhoods(num_of_sims, input_prefix):
+    best_lhood_resuls = find_lhoods(num_of_sims, input_prefix)
     best_fit_run = get_best_fit_model(best_lhood_resuls)
 
     return best_fit_run

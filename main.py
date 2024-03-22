@@ -33,18 +33,23 @@ def create_directory(dir_path):
         os.makedirs(dir_path)
 
 
+def prepare_run(cur_run):
+    # make directory
+    output_folder_name = f"output/run_{cur_run}"
+    create_directory(output_folder_name)
+    
+    # copy SFS into new dir
+    os.system(f"cp {FSC_INPUT_PREFIX}* {output_folder_name}")
+   
+    # move into new dir
+    os.chdir(output_folder_name)
+
+
 def run_simluations(num_of_sims):
     # run x number of fsc simulations
     for i in range(1, num_of_sims + 1):
-        # make directory
-        output_folder_name = f"output/run_{i}"
-        os.mkdir(output_folder_name)
-
-        # copy SFS into new dir
-        os.system(f"cp {FSC_INPUT_PREFIX}* {output_folder_name}")
-        
-        # move into new dir
-        os.chdir(output_folder_name)
+        # prepare folder for run
+        prepare_run(i)
     
         # Create filenames
         tpl_filename = f"{FSC_INPUT_PREFIX}.tpl"
@@ -66,7 +71,7 @@ def run_simluations(num_of_sims):
         )
 
         # Run fsc
-        command = f"fsc28 -t {tpl_filename} -e {est_filename} -m --multiSFS -0 -C 10 -n 10000 -L 40 -s 0 -M"
+        command = f"fsc28 -t {tpl_filename} -e {est_filename} -d -0 -C 10 -n 10000 -L 40 -s 0 -M"
         execute_command(command)
 
         # go back to root directory
@@ -77,14 +82,14 @@ def run():
     # Create output directory
     create_directory("output")
    
-    num_of_sims = 1 # hard-coded, but can change
+    num_of_sims = 3 # hard-coded, but can change
    
     # run simulations
     run_simluations(num_of_sims)
    
     # find the best fit run
-    # best_fit_run = determine_best_fit_model.get_best_lhoods(num_of_sims)
-    # print("best fit run: run", best_fit_run)
+    best_fit_run = determine_best_fit_model.get_best_lhoods(num_of_sims, FSC_INPUT_PREFIX)
+    print("best fit run: run", best_fit_run)
 
 
 if __name__ == "__main__":
