@@ -2,7 +2,7 @@ import re
 from itertools import chain
 
 
-def estimation(simple_params, complex_params, mutation_rate_dist):
+def populate_est(simple_params, complex_params, mutation_rate_dist):
     return (
         [
             "// Priors and rules file",
@@ -35,6 +35,20 @@ def get_population_parameters(input_template, ne_dist):
         for param in population_parameters
     ]
     return formatted_population_parameters
+
+def get_growth_rate_params(input_template):
+    # find the growth rates
+    start_index = input_template.index("//Growth rates : negative growth implies population expansion") + 1
+    end_index = input_template.index("//Number of migration matrices : 0 implies no migration between demes")
+    growth_rates = input_template[start_index:end_index]
+    print(growth_rates)
+
+    # if population is should expand, add growth params
+    if growth_rates[0] != "0":
+
+        return ["expand"]
+
+    return None
 
 
 def get_migration_parameters(input_template, mig_dist):
@@ -198,8 +212,14 @@ def create_est(
     # Admixture parameters
     simple_parameters.extend(get_admixture_parameters(input_template, admix_dist))
 
+    # Growth rate params
+    growth_rate_params = get_growth_rate_params(input_template)
+    print(growth_rate_params)
+    if growth_rate_params is not None:
+        complex_parameters.extend(growth_rate_params)
+
     # Combine parameters & write to a file
-    est = estimation(simple_parameters, complex_parameters, mutation_rate_dist)
+    est = populate_est(simple_parameters, complex_parameters, mutation_rate_dist)
     with open(est_filename, "w") as file:
         for line in est:
             file.write(line + "\n")
