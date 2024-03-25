@@ -34,10 +34,15 @@ def write_tpl_file(
 
 
 # TODO potentailly add functionality for this to return + or - growth rates
-def get_growth_rates(num_pops):
+def get_growth_rates(num_pops, ghost_present):
     shouldPopulationExpand = random.choice([True, False])
     if shouldPopulationExpand:
-        return [f"GrowthP{i}" for i in range(0, num_pops)]
+        if ghost_present:
+            growth_rates = [f"GrowthP{i}" for i in range(0, num_pops - 1)]
+            growth_rates.append(f"GrowthPG")
+        else:
+            growth_rates = [f"GrowthP{i}" for i in range(0, num_pops)]
+        return growth_rates
     else:
         return ["0"] * num_pops
 
@@ -263,7 +268,7 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl", user_given_num_pop
     historical_events = add_admixture_events(num_pops, historical_events, ghost_present=add_ghost)
 
     # Get growth rates
-    growth_rates = get_growth_rates(num_pops)
+    growth_rates = get_growth_rates(num_pops, ghost_present = add_ghost)
 
     # Effective population sizes
     Ne = [f"NPOP_{name}" for name in get_populations(ghost_present=add_ghost, num_pops=num_pops)]
