@@ -34,8 +34,17 @@ def write_tpl_file(
 
 
 # TODO potentailly add functionality for this to return + or - growth rates
-def get_growth_rates(num_pops):
-    return ["0"] * num_pops
+def get_growth_rates(num_pops, ghost_present):
+    shouldPopulationExpand = random.choice([True, False])
+    if shouldPopulationExpand:
+        if ghost_present:
+            growth_rates = [f"GrowthP{i}" for i in range(0, num_pops - 1)]
+            growth_rates.append(f"GrowthPG")
+        else:
+            growth_rates = [f"GrowthP{i}" for i in range(0, num_pops)]
+        return growth_rates
+    else:
+        return ["0"] * num_pops
 
 
 def random_admixture_event(num_pops, divergence_event, **kwargs):
@@ -136,7 +145,7 @@ def get_sample(sampling_options, **kwargs):
 def randomize_divergence_order(
     root_population_indices, leaf_population_indices, **kwargs
 ):
-    migrants = 1 # TODO are these hard-coded? 
+    migrants = 1 # TODO is this hard-coded? 
     growth_rate = 0
     output = []
     possible_roots = root_population_indices.copy()
@@ -220,8 +229,8 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl", user_given_num_pop
     num_pops = user_given_num_pops + 1 if add_ghost else user_given_num_pops
 
     # Define outgroup and set as root node
-    # TODO modify this so that this is either user defined OR constant (but never 0). Either 1 or 2 in OG code.
-    outgroup_index = random.choice([2, 1])
+    # TODO modify this so that this is either user defined OR constant OR random (but never 0). This is what the OG code has
+    outgroup_index = num_pops - 2 if add_ghost else num_pops - 1
     roots = [outgroup_index]
 
     # Place other populations as leaf nodes
@@ -259,7 +268,7 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl", user_given_num_pop
     historical_events = add_admixture_events(num_pops, historical_events, ghost_present=add_ghost)
 
     # Get growth rates
-    growth_rates = get_growth_rates(num_pops)
+    growth_rates = get_growth_rates(num_pops, ghost_present = add_ghost)
 
     # Effective population sizes
     Ne = [f"NPOP_{name}" for name in get_populations(ghost_present=add_ghost, num_pops=num_pops)]
@@ -269,7 +278,7 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl", user_given_num_pop
         num_pops=num_pops,
         effective_pop_sizes=Ne,
         sample_sizes=sample_sizes + [0] if add_ghost else sample_sizes,
-        growth_rates=["0"] * len(growth_rates),
+        growth_rates=growth_rates,
         migration_info=migration_info,
         historical_events=[f"{len(historical_events)} historical events"]
         + historical_events[::-1],

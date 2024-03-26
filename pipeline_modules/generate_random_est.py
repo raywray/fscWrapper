@@ -2,7 +2,7 @@ import re
 from itertools import chain
 
 
-def estimation(simple_params, complex_params, mutation_rate_dist):
+def populate_est(simple_params, complex_params, mutation_rate_dist):
     return (
         [
             "// Priors and rules file",
@@ -26,8 +26,12 @@ def estimation(simple_params, complex_params, mutation_rate_dist):
     )
 
 
+def get_population_params_from_tpl(input_template):
+    return [line for line in input_template if "NPOP_" in line]
+
+
 def get_population_parameters(input_template, ne_dist):
-    population_parameters = [line for line in input_template if "NPOP_" in line]
+    population_parameters = get_population_params_from_tpl(input_template)
     formatted_population_parameters = [
         "1 {} {} {} {} output".format(
             param, ne_dist["type"], ne_dist["min"], ne_dist["max"]
@@ -35,6 +39,68 @@ def get_population_parameters(input_template, ne_dist):
         for param in population_parameters
     ]
     return formatted_population_parameters
+
+
+def get_resize_parameters(input_template, resize_dist):
+    population_params = get_population_params_from_tpl(input_template)
+    resize_params = []
+    for pop in population_params:
+        pop_number = pop.split("_")[1]
+        resize_params.append(
+            "0 {} {} {} {} hide".format(
+                f"N{pop_number}RESIZE",
+                resize_dist["type"],
+                resize_dist["min"],
+                resize_dist["max"],
+            )
+        )
+    return resize_params
+
+def is_population_expanding(input_template):
+    # find the growth rates
+    start_index = (
+        input_template.index(
+            "//Growth rates : negative growth implies population expansion"
+        )
+        + 1
+    )
+    end_index = input_template.index(
+        "//Number of migration matrices : 0 implies no migration between demes"
+    )
+    growth_rates = input_template[start_index:end_index]
+
+    if growth_rates[0] != "0":
+        return True
+    else:
+        return False
+
+
+def get_growth_rate_params(input_template):
+    population_params = get_population_params_from_tpl(input_template)
+    
+    all_splits = []
+    ratios = []
+    logs = []
+    growths = []
+    
+    time_params = get_time_params_from_tpl(input_template)
+    
+    for pop in population_params:
+        pop_number = pop.split("_")[1]
+        
+        all_splits.append(
+            f"1 N{pop_number}atSPLIT = {pop}*N{pop_number}RESIZE output"
+        )
+        
+        ratios.append(f"0 tmpRATIOP{pop_number} = N{pop_number}atSPLIT/{pop} hide")
+        
+        logs.append(f"0 tmplogP{pop_number} = log(tmpRATIOP{pop_number}) hide")
+        
+        growths.append(
+            f"0 GrowthP{pop_number} = tmplogP{pop_number}/{time_params[0]} output"
+        )
+
+    return all_splits + ratios + logs + growths
 
 
 def get_migration_parameters(input_template, mig_dist):
@@ -79,19 +145,19 @@ def get_parameter_pattern(prefix):
     return rf"{prefix}_[a-zA-Z0-9]+"
 
 
-def resize_parameters(input_template, resized_dist):
-    resized_parameters = []
+def get_res_parameters(input_template, res_dist):
+    res_params = []
     if any("RES_" in line for line in input_template):
-        resize_parameters = set(
+        res_params_from_tpl = set(
             re.findall(get_parameter_pattern("RES"), " ".join(input_template))
         )
-        resized_parameters = [
+        res_params = [
             "0 {} {} {} {} output".format(
-                param, resized_dist["type"], resized_dist["min"], resized_dist["max"]
+                param, res_dist["type"], res_dist["min"], res_dist["max"]
             )
-            for param in resize_parameters
+            for param in res_params_from_tpl
         ]
-    return resized_parameters
+    return res_params
 
 
 def get_admixture_parameters(input_template, admix_dist):
@@ -107,11 +173,7 @@ def get_admixture_parameters(input_template, admix_dist):
     return formatted_admixture_parameters
 
 
-def get_time_parameters(input_template, time_dist):
-    simple_time_parameters = []
-    complex_time_parameters = []
-
-    # Find all occurrences of time parameters (TDIV or TAdm) in the input template
+def get_time_params_from_tpl(input_template):
     time_parameter_locations = [
         i for i, item in enumerate(input_template) if re.search("TDIV|TAdm", item)
     ]
@@ -121,6 +183,16 @@ def get_time_parameters(input_template, time_dist):
         for i in time_parameter_locations
         if re.match(time_pattern, input_template[i])
     ]
+
+    return time_parameters
+
+
+def get_time_parameters(input_template, time_dist):
+    simple_time_parameters = []
+    complex_time_parameters = []
+
+    # Find all occurrences of time parameters (TDIV or TAdm) in the input template
+    time_parameters = get_time_params_from_tpl(input_template)
 
     # Handle the time space between each event
     if len(time_parameters) == 1:
@@ -164,10 +236,11 @@ def create_est(
     est_filename="random.est",
     mutation_rate_dist={},
     ne_dist={},
-    resized_dist={},
+    res_dist={},
     admix_dist={},
     time_dist={},
-    mig_dist={}
+    mig_dist={},
+    resize_dist={},
 ):
     input_template = []
 
@@ -182,11 +255,16 @@ def create_est(
     # Population parameters
     simple_parameters.extend(get_population_parameters(input_template, ne_dist))
 
+    # Resize parameters ONLY if expansion
+    should_pop_expand = is_population_expanding(input_template)
+    if should_pop_expand:
+        simple_parameters.extend(get_resize_parameters(input_template, resize_dist))
+
     # Migration rate parameters
     simple_parameters.extend(get_migration_parameters(input_template, mig_dist))
 
     # Resizing parameters
-    simple_parameters.extend(resize_parameters(input_template, resized_dist))
+    simple_parameters.extend(get_res_parameters(input_template, res_dist))
 
     # Time parameters
     simple_time_parameters, complex_time_parameters = get_time_parameters(
@@ -198,8 +276,12 @@ def create_est(
     # Admixture parameters
     simple_parameters.extend(get_admixture_parameters(input_template, admix_dist))
 
+    # Growth rate params, only if population is expanding
+    if should_pop_expand:
+        complex_parameters.extend(get_growth_rate_params(input_template))
+
     # Combine parameters & write to a file
-    est = estimation(simple_parameters, complex_parameters, mutation_rate_dist)
+    est = populate_est(simple_parameters, complex_parameters, mutation_rate_dist)
     with open(est_filename, "w") as file:
         for line in est:
             file.write(line + "\n")
