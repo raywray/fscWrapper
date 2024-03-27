@@ -1,4 +1,6 @@
 import os
+import sys
+
 from pipeline_modules import (
     generate_random_tpl,
     generate_random_est,
@@ -75,5 +77,12 @@ def run(user_params):
 
 if __name__ == "__main__":
     # get user params
-    user_params = get_user_params_from_yaml.read_yaml_file("hops-input.yml")
+    if len(sys.argv) < 2:
+        print("Usage: python script.py <parameter>")
+        sys.exit(1)  
+    user_input_yaml_filepath = sys.argv[1]
+
+    # parse yaml
+    user_params = get_user_params_from_yaml.read_yaml_file(user_input_yaml_filepath)
+    # run program
     run(user_params)
