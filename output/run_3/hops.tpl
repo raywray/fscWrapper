@@ -11,10 +11,10 @@ NPOP_3
 6
 12
 //Growth rates : negative growth implies population expansion
-0
-0
-0
-0
+GrowthP0
+GrowthP1
+GrowthP2
+GrowthP3
 //Number of migration matrices : 0 implies no migration between demes
 4
 //Migration matrix 0
@@ -38,9 +38,11 @@ MIG_0to3 MIG_1to3 MIG_2to3 0.000
 0 0 0 0
 0 0 0 0
 //historical event: time, source, sink, migrants, new deme size, growth rate, migr mat index
-3 historical events
-TDIV_1to2 2 1 1 RES_1to2 0 1
-TDIV_3to1 1 3 1 RES_3to1 0 2
+5 historical events
+TAdm_1to2 2 1 a_1to2 1 0 0 TAdm_2to1 1 2 a_2to1 1 0 0 
+TAdm_0to3 3 0 a_0to3 1 0 0 TAdm_3to0 0 3 a_3to0 1 0 0 
+TDIV_3to1 1 3 1 RES_3to1 0 1
+TDIV_3to2 2 3 1 RES_3to2 0 2
 TDIV_3to0 0 3 1 RES_3to0 0 3
 //Number of independent loci [chromosome]
 1 0

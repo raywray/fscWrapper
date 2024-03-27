@@ -1,0 +1,61 @@
+// Priors and rules file
+// *********************
+
+[PARAMETERS]
+//#isInt? #name #dist. #min #max
+0 MUTRATE unif 1e-7 1e-9 output
+1 NPOP_0 unif 100 300000 output
+1 NPOP_1 unif 100 300000 output
+1 NPOP_2 unif 100 300000 output
+1 NPOP_3 unif 100 300000 output
+0 N0RESIZE unif 1e-4 1 hide
+0 N1RESIZE unif 1e-4 1 hide
+0 N2RESIZE unif 1e-4 1 hide
+0 N3RESIZE unif 1e-4 1 hide
+0 MIG_0to1 logunif 1e-10 1e-1 output
+0 MIG_0to2 logunif 1e-10 1e-1 output
+0 MIG_0to3 logunif 1e-10 1e-1 output
+0 MIG_1to0 logunif 1e-10 1e-1 output
+0 MIG_1to2 logunif 1e-10 1e-1 output
+0 MIG_1to3 logunif 1e-10 1e-1 output
+0 MIG_2to0 logunif 1e-10 1e-1 output
+0 MIG_2to1 logunif 1e-10 1e-1 output
+0 MIG_2to3 logunif 1e-10 1e-1 output
+0 MIG_3to0 logunif 1e-10 1e-1 output
+0 MIG_3to1 logunif 1e-10 1e-1 output
+0 MIG_3to2 logunif 1e-10 1e-1 output
+0 RES_3to0 unif 0 100 output
+0 RES_3to1 unif 0 100 output
+0 RES_3to2 unif 0 100 output
+1 TAdm_1to2 unif 1 600 output
+1 T_1_2 unif 0 500 hide
+1 T_2_3 unif 0 500 hide
+1 T_3_4 unif 0 500 hide
+1 T_4_5 unif 0 500 hide
+0 a_3to0 unif 0 0.25 output
+0 a_0to3 unif 0 0.25 output
+0 a_1to2 unif 0 0.25 output
+0 a_2to1 unif 0 0.25 output
+
+[COMPLEX PARAMETERS]
+
+1 TAdm_0to3 = T_1_2 + TAdm_1to2 output
+1 TDIV_3to1 = T_2_3 + TAdm_0to3 output
+1 TDIV_3to2 = T_3_4 + TDIV_3to1 output
+1 TDIV_3to0 = T_4_5 + TDIV_3to2 output
+1 N0atSPLIT = NPOP_0*N0RESIZE output
+1 N1atSPLIT = NPOP_1*N1RESIZE output
+1 N2atSPLIT = NPOP_2*N2RESIZE output
+1 N3atSPLIT = NPOP_3*N3RESIZE output
+0 tmpRATIOP0 = N0atSPLIT/NPOP_0 hide
+0 tmpRATIOP1 = N1atSPLIT/NPOP_1 hide
+0 tmpRATIOP2 = N2atSPLIT/NPOP_2 hide
+0 tmpRATIOP3 = N3atSPLIT/NPOP_3 hide
+0 tmplogP0 = log(tmpRATIOP0) hide
+0 tmplogP1 = log(tmpRATIOP1) hide
+0 tmplogP2 = log(tmpRATIOP2) hide
+0 tmplogP3 = log(tmpRATIOP3) hide
+0 GrowthP0 = tmplogP0/TAdm_1to2 output
+0 GrowthP1 = tmplogP1/TAdm_1to2 output
+0 GrowthP2 = tmplogP2/TAdm_1to2 output
+0 GrowthP3 = tmplogP3/TAdm_1to2 output

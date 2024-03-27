@@ -235,11 +235,11 @@ def create_est(
     input_template_filepath,
     est_filename="random.est",
     mutation_rate_dist={},
-    ne_dist={},
+    effective_pop_size_dist={},
     res_dist={},
     admix_dist={},
+    migration_dist={},
     time_dist={},
-    mig_dist={},
     resize_dist={},
 ):
     input_template = []
@@ -253,7 +253,7 @@ def create_est(
     complex_parameters = []
 
     # Population parameters
-    simple_parameters.extend(get_population_parameters(input_template, ne_dist))
+    simple_parameters.extend(get_population_parameters(input_template, effective_pop_size_dist))
 
     # Resize parameters ONLY if expansion
     should_pop_expand = is_population_expanding(input_template)
@@ -261,7 +261,7 @@ def create_est(
         simple_parameters.extend(get_resize_parameters(input_template, resize_dist))
 
     # Migration rate parameters
-    simple_parameters.extend(get_migration_parameters(input_template, mig_dist))
+    simple_parameters.extend(get_migration_parameters(input_template, migration_dist))
 
     # Resizing parameters
     simple_parameters.extend(get_res_parameters(input_template, res_dist))
