@@ -50,8 +50,9 @@ def run_simluations(user_params, num_of_sims):
             **user_params["MODEL_PARAMS"]
         )
 
-        # Run fsc
-        command = f"fsc28 -t {tpl_filename} -e {est_filename} -d -0 -C 10 -n 10000 -L 40 -s 0 -M"
+        # Run fsc TODO: change so it runs each model 100 times
+        # TODO: get best l hoods from this, compare each best with each best
+        command = f"fsc28 -t {tpl_filename} -e {est_filename} -d -0 -C 10 -n 1000 -L 40 -s 0 -M"
         execute_command(command)
 
         # go back to root directory
@@ -62,7 +63,7 @@ def run(user_params):
     # Create output directory
     create_directory("output")
 
-    num_of_sims = 3  # TODO: hard-coded, but can change
+    num_of_sims = 10  # TODO: hard-coded, but can change
 
     # run simulations
     run_simluations(user_params, num_of_sims)
@@ -74,5 +75,5 @@ def run(user_params):
 
 if __name__ == "__main__":
     # get user params
-    user_params = get_user_params_from_yaml.read_yaml_file("user_input.yml")
+    user_params = get_user_params_from_yaml.read_yaml_file("hops-input.yml")
     run(user_params)

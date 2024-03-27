@@ -1,0 +1,40 @@
+FSC_INPUT_PREFIX: hops
+NUM_POPS: 4
+SAMPLE_SIZES:
+  - 18
+  - 19
+  - 41
+  - 20
+MODEL_PARAMS:
+  mutation_rate_dist:
+    min: 6.1e-9
+    max: 6.1e-9
+    type: unif
+  effective_pop_size_dist:
+    min: 10
+    max: 2e6
+    type: unif
+  res_dist:
+    min: 0
+    max: 100
+    type: unif
+  admix_dist:
+    min: 0
+    max: 0.25
+    type: unif
+  migration_dist:
+    min: 1e-5
+    max: 5
+    type: logunif
+  time_dist:
+    type: unif
+    single_max: 3000
+    single_min: 5
+    multiple_max: 1000
+    multiple_min: 5
+    extra_max: 500
+    extra_min: 0
+  resize_dist:
+    type: unif
+    min: 1e-4
+    max: 1
