@@ -14,10 +14,6 @@ MODEL_PARAMS:
     min: 10
     max: 2e6
     type: unif
-  res_dist:
-    min: 0
-    max: 100
-    type: unif
   admix_dist:
     min: 0
     max: 0.25
@@ -28,12 +24,12 @@ MODEL_PARAMS:
     type: logunif
   time_dist:
     type: unif
-    single_max: 3000
     single_min: 5
-    multiple_max: 1000
+    single_max: 3000
     multiple_min: 5
-    extra_max: 500
+    multiple_max: 1000
     extra_min: 0
+    extra_max: 500
   resize_dist:
     type: unif
     min: 1e-4

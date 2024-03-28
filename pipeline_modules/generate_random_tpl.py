@@ -33,7 +33,6 @@ def write_tpl_file(
         fout.writelines("\n".join(lines))
 
 
-# TODO potentailly add functionality for this to return + or - growth rates
 def get_growth_rates(num_pops, ghost_present):
     shouldPopulationExpand = random.choice([True, False])
     if shouldPopulationExpand:
@@ -163,7 +162,6 @@ def randomize_divergence_order(
         offshoot_name = populations[offshoot]
 
         time = f"TDIV_{root_name}to{offshoot_name}"
-        new_deme_size = f"RES_{root_name}to{offshoot_name}"
         output.append(
             " ".join(
                 map(
@@ -173,7 +171,6 @@ def randomize_divergence_order(
                         offshoot,
                         root,
                         migrants,
-                        new_deme_size,
                         growth_rate,
                         rev_migration_matrix_index,
                     ],

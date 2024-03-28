@@ -145,21 +145,6 @@ def get_parameter_pattern(prefix):
     return rf"{prefix}_[a-zA-Z0-9]+"
 
 
-def get_res_parameters(input_template, res_dist):
-    res_params = []
-    if any("RES_" in line for line in input_template):
-        res_params_from_tpl = set(
-            re.findall(get_parameter_pattern("RES"), " ".join(input_template))
-        )
-        res_params = [
-            "0 {} {} {} {} output".format(
-                param, res_dist["type"], res_dist["min"], res_dist["max"]
-            )
-            for param in res_params_from_tpl
-        ]
-    return res_params
-
-
 def get_admixture_parameters(input_template, admix_dist):
     admixture_parameters = set(
         re.findall(get_parameter_pattern("a"), " ".join(input_template))
@@ -193,6 +178,7 @@ def get_time_parameters(input_template, time_dist):
 
     # Find all occurrences of time parameters (TDIV or TAdm) in the input template
     time_parameters = get_time_params_from_tpl(input_template)
+    print("time params: ", time_parameters)
 
     # Handle the time space between each event
     if len(time_parameters) == 1:
@@ -236,7 +222,6 @@ def create_est(
     est_filename="random.est",
     mutation_rate_dist={},
     effective_pop_size_dist={},
-    res_dist={},
     admix_dist={},
     migration_dist={},
     time_dist={},
@@ -262,9 +247,6 @@ def create_est(
 
     # Migration rate parameters
     simple_parameters.extend(get_migration_parameters(input_template, migration_dist))
-
-    # Resizing parameters
-    simple_parameters.extend(get_res_parameters(input_template, res_dist))
 
     # Time parameters
     simple_time_parameters, complex_time_parameters = get_time_parameters(
