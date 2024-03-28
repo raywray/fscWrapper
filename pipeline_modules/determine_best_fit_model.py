@@ -25,7 +25,10 @@ def get_best_fit_model(results):
     with open("best_lhood_results.txt", "w") as results_file:
         for result in results:
             results_file.write(f"{result[0]} {result[1]}\n")
-    best_fit_run = results[0][0]
+    if not results:
+        best_fit_run = "NA"
+    else:
+        best_fit_run = results[0][0]
     return best_fit_run
 
 
