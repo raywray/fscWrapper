@@ -6,7 +6,7 @@ from pipeline_modules import (
     generate_random_est,
     determine_best_fit_model,
 )
-from utilities import get_user_params_from_yaml, use_fsc
+from utilities import get_user_params_from_yaml, use_fsc # type: ignore
 
 
 def execute_command(command):
@@ -17,7 +17,7 @@ def create_directory(dir_path):
     os.makedirs(dir_path, exist_ok=True)
 
 
-def prepare_run(user_params, cur_run):
+def prepare_run(cur_run):
     # add fsc executable
     use_fsc.add_fsc_to_path()
     
@@ -36,7 +36,7 @@ def run_simluations(user_params, num_of_sims):
     # run x number of fsc simulations
     for i in range(1, num_of_sims + 1):
         # prepare folder for run
-        prepare_run(user_params, i)
+        prepare_run(i)
 
         # Create filenames
         tpl_filename = f"{user_params["FSC_INPUT_PREFIX"]}.tpl"
@@ -54,7 +54,8 @@ def run_simluations(user_params, num_of_sims):
 
         # Run fsc TODO: change so it runs each model 100 times
         # TODO: get best l hoods from this, compare each best with each best
-        command = f"fsc28 -t {tpl_filename} -e {est_filename} -d -0 -C 10 -n 1000 -L 40 -s 0 -M"
+        # TODO: change 10000 to 1000
+        command = f"fsc28 -t {tpl_filename} -e {est_filename} -d -0 -C 10 -n 10000 -L 40 -s 0 -M"
         execute_command(command)
 
         # go back to root directory
@@ -65,7 +66,7 @@ def run(user_params):
     # Create output directory
     create_directory("output")
 
-    num_of_sims = 10  # TODO: hard-coded, but can change
+    num_of_sims = 3  # TODO: hard-coded, but can change
 
     # run simulations
     run_simluations(user_params, num_of_sims)

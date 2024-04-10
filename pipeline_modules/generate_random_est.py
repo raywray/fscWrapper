@@ -178,7 +178,6 @@ def get_time_parameters(input_template, time_dist):
 
     # Find all occurrences of time parameters (TDIV or TAdm) in the input template
     time_parameters = get_time_params_from_tpl(input_template)
-    print("time params: ", time_parameters)
 
     # Handle the time space between each event
     if len(time_parameters) == 1:

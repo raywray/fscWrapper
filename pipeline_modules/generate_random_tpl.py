@@ -2,11 +2,20 @@ import random
 from math import comb
 import re
 
+
 def write_tpl_file(
-    file_name, num_pops, effective_pop_sizes, sample_sizes, growth_rates, migration_info, historical_events
+    file_name,
+    num_pops,
+    effective_pop_sizes,
+    sample_sizes,
+    growth_rates,
+    migration_info,
+    historical_events,
 ):
-    
-    flattened_mig_info = [migration_info[0]] + [item for sublist in migration_info[1:] for item in sublist]
+
+    flattened_mig_info = [migration_info[0]] + [
+        item for sublist in migration_info[1:] for item in sublist
+    ]
 
     lines = [
         "//Number of population samples (demes)",
@@ -50,8 +59,12 @@ def random_admixture_event(num_pops, divergence_event, **kwargs):
     source = get_sample(list(range(0, num_pops)), k=1)
     difference = list(set(list(range(0, num_pops))) - set([source]))
     sink = get_sample(difference, k=1)
-    output = single_admixture_event(source, sink, divergence_event, num_pops=num_pops, **kwargs)
-    output += single_admixture_event(sink, source, divergence_event, num_pops=num_pops, **kwargs)
+    output = single_admixture_event(
+        source, sink, divergence_event, num_pops=num_pops, **kwargs
+    )
+    output += single_admixture_event(
+        sink, source, divergence_event, num_pops=num_pops, **kwargs
+    )
     return output
 
 
@@ -65,13 +78,13 @@ def single_admixture_event(source, sink, divergence_event=None, **kwargs):
         associated_matrix = re.sub(r"^T.* ([0-9])$", r"\1", divergence_event)
     else:
         return "Error in divergence event specification"
-   
+
     # Get all populations
     populations = get_populations(**kwargs)
     # Assign source & sink names
     source_name = populations[source]
     sink_name = populations[sink]
-   
+
     event_name = f"TAdm_{sink_name}to{source_name}"
     migrants = f"a_{sink_name}to{source_name}"
     growth_rate = 0
@@ -144,7 +157,7 @@ def get_sample(sampling_options, **kwargs):
 def randomize_divergence_order(
     root_population_indices, leaf_population_indices, **kwargs
 ):
-    migrants = 1 # TODO is this hard-coded? 
+    migrants = 1  # TODO is this hard-coded?
     growth_rate = 0
     output = []
     possible_roots = root_population_indices.copy()
@@ -154,7 +167,7 @@ def randomize_divergence_order(
     while len(possible_leaves) > 0:
         root = get_sample(possible_roots, k=1)
         offshoot = get_sample(possible_leaves, k=1)
-       
+
         # Get all populations
         populations = get_populations(**kwargs)
         # Assign root & offshoot names
@@ -183,42 +196,46 @@ def randomize_divergence_order(
 
     return output
 
+
 def get_populations(ghost_present=False, num_pops=0):
     populations = []
-    population_range = num_pops -1 if ghost_present else num_pops
+    population_range = num_pops - 1 if ghost_present else num_pops
     for i in range(0, population_range):
         populations.append(str(i))
-   
-   # If ghost population present add G to populations list
+
+    # If ghost population present add G to populations list
     if ghost_present:
         populations.append("G")
     return populations
+
 
 def add_admixture_events(num_pops, historical_events, **kwargs):
     # Randomize num of admix events (can be 0)
     num_ways_to_choose_two_pops = comb(num_pops, 2)
     num_admixture_events = random.sample(range(num_ways_to_choose_two_pops + 1), 1)[0]
-    
-    if num_admixture_events > 0: # if there are admix events
-        admix_after_these_divergences = [0] * num_admixture_events # initialize matrix
+
+    if num_admixture_events > 0:  # if there are admix events
+        admix_after_these_divergences = [0] * num_admixture_events  # initialize matrix
         for i in range(1, num_admixture_events):
             admixture_event = random_admixture_event(
                 num_pops,
                 admix_after_these_divergences[i],  # TODO will this always be 0?
-                **kwargs
+                **kwargs,
             )
             # don't repeat admix events
             while len(set(admixture_event) & set(historical_events)) > 0:
                 admixture_event = random_admixture_event(
                     num_pops,
                     admix_after_these_divergences[i],  # TODO will this always be 0?
-                    **kwargs
+                    **kwargs,
                 )
             historical_events.append(admixture_event)
     return historical_events
 
 
-def generate_random_tpl_parameters(tpl_filename="random.tpl", user_given_num_pops=0, sample_sizes=[]):
+def generate_random_tpl_parameters(
+    tpl_filename="random.tpl", user_given_num_pops=0, sample_sizes=[]
+):
     # Randomize adding a ghost population
     add_ghost = random.choice([True, False])
 
@@ -227,7 +244,9 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl", user_given_num_pop
 
     # Define outgroup and set as root node
     # TODO modify this so that this is either user defined OR constant OR random (but never 0). This is what the OG code has
-    outgroup_index = num_pops - 2 if add_ghost else num_pops - 1
+    outgroup_index = (
+        num_pops - 2 if add_ghost else num_pops - 1
+    ) 
     roots = [outgroup_index]
 
     # Place other populations as leaf nodes
@@ -254,21 +273,26 @@ def generate_random_tpl_parameters(tpl_filename="random.tpl", user_given_num_pop
     )
     migration_info = [str(len(divergence_events) + 1)] + migration_matrix
 
-    '''
+    """
     TODO -- should we do this?
     Was going to add admixing to periods after divergence
     num_admixture_events <- sample(0:length(divergence_events), 1)
     But example code only shows for the current period, so I'll do that
-    '''
+    """
 
     # Add admixture event(s) to historical events
-    historical_events = add_admixture_events(num_pops, historical_events, ghost_present=add_ghost)
+    historical_events = add_admixture_events(
+        num_pops, historical_events, ghost_present=add_ghost
+    )
 
     # Get growth rates
-    growth_rates = get_growth_rates(num_pops, ghost_present = add_ghost)
+    growth_rates = get_growth_rates(num_pops, ghost_present=add_ghost)
 
     # Effective population sizes
-    Ne = [f"NPOP_{name}" for name in get_populations(ghost_present=add_ghost, num_pops=num_pops)]
+    Ne = [
+        f"NPOP_{name}"
+        for name in get_populations(ghost_present=add_ghost, num_pops=num_pops)
+    ]
 
     return write_tpl_file(
         file_name=tpl_filename,
