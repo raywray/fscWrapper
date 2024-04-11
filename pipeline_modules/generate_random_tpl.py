@@ -175,6 +175,7 @@ def randomize_divergence_order(
         offshoot_name = populations[offshoot]
 
         time = f"TDIV_{root_name}to{offshoot_name}"
+        new_deme_size = f"RES_{root_name}to{offshoot_name}" # TODO: maybe delete
         output.append(
             " ".join(
                 map(
@@ -184,6 +185,7 @@ def randomize_divergence_order(
                         offshoot,
                         root,
                         migrants,
+                        new_deme_size, # TODO: maybe delete
                         growth_rate,
                         rev_migration_matrix_index,
                     ],
@@ -232,6 +234,20 @@ def add_admixture_events(num_pops, historical_events, **kwargs):
             historical_events.append(admixture_event)
     return historical_events
 
+# TODO: determine if we need this
+# def random_resize_event(num_pops, divergence_event, **kwargs):
+#     # randomly resize events (bottlenecks and expansions)
+#     if isinstance(divergence_event, (int, float)):
+#         associated_matrix = divergence_event.copy()
+#     elif "TDIV" in divergence_event:
+#         associated_matrix = int(divergence_event.split(" ")[1])
+#     source = get_sample(list(range(0, num_pops)), k=1)
+#     sink = source
+#     event_name = f"TRES_{sink}_to{source}"
+#     migrants = 0
+#     growth_rate = f"GR_{sink}_to{source}"
+#     output = [event_name, source, sink, migrants, 1, growth_rate, associated_matrix]
+#     return output
 
 def generate_random_tpl_parameters(
     tpl_filename="random.tpl", user_given_num_pops=0, sample_sizes=[]
@@ -244,9 +260,7 @@ def generate_random_tpl_parameters(
 
     # Define outgroup and set as root node
     # TODO modify this so that this is either user defined OR constant OR random (but never 0). This is what the OG code has
-    outgroup_index = (
-        num_pops - 2 if add_ghost else num_pops - 1
-    ) 
+    outgroup_index = num_pops - 2 if add_ghost else num_pops - 1
     roots = [outgroup_index]
 
     # Place other populations as leaf nodes
@@ -284,6 +298,8 @@ def generate_random_tpl_parameters(
     historical_events = add_admixture_events(
         num_pops, historical_events, ghost_present=add_ghost
     )
+
+    # resize_events = random_resize_event(num_pops, divergence_event=) TODO: do we need this?
 
     # Get growth rates
     growth_rates = get_growth_rates(num_pops, ghost_present=add_ghost)

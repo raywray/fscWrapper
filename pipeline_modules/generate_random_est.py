@@ -40,21 +40,21 @@ def get_population_parameters(input_template, ne_dist):
     ]
     return formatted_population_parameters
 
-
-def get_resize_parameters(input_template, resize_dist):
-    population_params = get_population_params_from_tpl(input_template)
-    resize_params = []
-    for pop in population_params:
-        pop_number = pop.split("_")[1]
-        resize_params.append(
-            "0 {} {} {} {} hide".format(
-                f"N{pop_number}RESIZE",
-                resize_dist["type"],
-                resize_dist["min"],
-                resize_dist["max"],
-            )
-        )
-    return resize_params
+# TODO:this is the way I tried following Arun's code
+# def get_resize_parameters(input_template, resize_dist):
+#     population_params = get_population_params_from_tpl(input_template)
+#     resize_params = []
+#     for pop in population_params:
+#         pop_number = pop.split("_")[1]
+#         resize_params.append(
+#             "0 {} {} {} {} hide".format(
+#                 f"N{pop_number}RESIZE",
+#                 resize_dist["type"],
+#                 resize_dist["min"],
+#                 resize_dist["max"],
+#             )
+#         )
+#     return resize_params
 
 def is_population_expanding(input_template):
     # find the growth rates
@@ -140,6 +140,22 @@ def get_migration_parameters(input_template, mig_dist):
     ]
     return migration_parameters
 
+# TODO: this is from stephanie's NEW code
+# Resizing parameters (past population size / future population size)
+# def get_res_parameters(input_template, res_dist):
+#     res_params = []
+#     if any("RES_" in line for line in input_template):
+#         res_params_from_tpl = set(
+#             re.findall(get_parameter_pattern("RES"), " ".join(input_template))
+#         )
+#         res_params = [
+#             "0 {} {} {} {} output".format(
+#                 param, res_dist["type"], res_dist["min"], res_dist["max"]
+#             )
+#             for param in res_params_from_tpl
+#         ]
+#     return res_params
+
 
 def get_parameter_pattern(prefix):
     return rf"{prefix}_[a-zA-Z0-9]+"
@@ -222,9 +238,10 @@ def create_est(
     mutation_rate_dist={},
     effective_pop_size_dist={},
     admix_dist={},
+    # res_dist={}, #TODO: maybe uncomment
     migration_dist={},
     time_dist={},
-    resize_dist={},
+    # resize_dist={},
 ):
     input_template = []
 
@@ -239,13 +256,16 @@ def create_est(
     # Population parameters
     simple_parameters.extend(get_population_parameters(input_template, effective_pop_size_dist))
 
-    # Resize parameters ONLY if expansion
-    should_pop_expand = is_population_expanding(input_template)
-    if should_pop_expand:
-        simple_parameters.extend(get_resize_parameters(input_template, resize_dist))
+    # Resize parameters ONLY if expansion TODO: reconsider
+    # should_pop_expand = is_population_expanding(input_template)
+    # if should_pop_expand:
+    #     simple_parameters.extend(get_resize_parameters(input_template, resize_dist))
 
     # Migration rate parameters
     simple_parameters.extend(get_migration_parameters(input_template, migration_dist))
+    
+    # Resize parameters
+    # simple_parameters.extend(get_res_parameters(input_template, res_dist)) TODO: maybe uncomment
 
     # Time parameters
     simple_time_parameters, complex_time_parameters = get_time_parameters(
@@ -258,6 +278,7 @@ def create_est(
     simple_parameters.extend(get_admixture_parameters(input_template, admix_dist))
 
     # Growth rate params, only if population is expanding
+    should_pop_expand = is_population_expanding(input_template)
     if should_pop_expand:
         complex_parameters.extend(get_growth_rate_params(input_template))
 
