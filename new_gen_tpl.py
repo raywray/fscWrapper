@@ -38,6 +38,7 @@ def write_tpl(
         f"FREQ 1 0 MUTRATE OUTEXP",
     ]
 
+    # write to file
     with open(filename, "w") as tpl_file:
         tpl_file.writelines("\n".join(lines))
 
@@ -312,7 +313,9 @@ def generate_random_tpl(
         )
         historical_events.extend(admixture_events)
 
-    # Step 5: build migration matrices (if there is migration)
+    # TODO: add bottlenecks, exponential growths.
+
+    # Step 5: build migration matrices (if there is migration) ✓
     if pops_should_migrate:
         migration_matrices = get_migration_matrices(
             num_pops=number_of_populations,
