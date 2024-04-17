@@ -73,26 +73,15 @@ def get_migration_params(tpl, mig_dist):
     return migration_params
 
 
-def get_historical_event_params(tpl, time_dist, param_type):
-    simple_time_params = []
-    complex_time_params = []
-    space_between_events_min = 0 
-    space_between_events_max = 1000 # OG stephanie code was 500. HARDCODED, can change
-
-    # TODO: check if there even are admix params
-    divergence_event_params_from_tpl = get_params_from_tpl(tpl, "TDIV")
-    admixture_event_params_from_tpl = get_params_from_tpl(tpl, "TADMIX")
-
-    # use the find unique params function
-    unique_divergence_params = find_unique_params(
-        divergence_event_params_from_tpl, r"\bTDIV\w*"
+def get_divergence_event_params(divergence_params, time_dist):
+    simple_div_params = []
+    complex_div_params = []
+    space_between_events_min = 0
+    space_between_events_max = (
+        1000  # NOTE: OG stephanie code was 500. HARDCODED, can change
     )
-    unique_admixture_params = find_unique_params(
-        admixture_event_params_from_tpl, r"\bTADMIX\w*"
-    )
-    unique_time_params = unique_divergence_params + unique_admixture_params
-    
-    # define some used functions
+
+    # define some functions
     def add_event_to_param(time_parameters, event, min, max):
         time_parameters.append(
             "1 {} {} {} {} output".format(
@@ -105,44 +94,81 @@ def get_historical_event_params(tpl, time_dist, param_type):
 
     def add_first_div_event_to_simple_params():
         add_event_to_param(
-            simple_time_params,
-            unique_time_params[0],
+            simple_div_params,
+            divergence_params[0],
             time_dist["min"],
             time_dist["max"],
         )
 
     # decide whether time or complex param
-    if len(unique_time_params) == 1:
+    if len(divergence_params) == 1:
         # only one, add to simple
         add_first_div_event_to_simple_params()
-    
-    elif len(unique_time_params) > 1:
+
+    elif len(divergence_params) > 1:
         # there are more -- add the first to simple, rest to complex
-        # in OG stephanie code, the min was 1 and max 600
+        # NOTE: in OG stephanie code, the min was 1 and max 600
         add_first_div_event_to_simple_params()
-       
-        for i in range(1, len(unique_time_params)):
+
+        for i in range(1, len(divergence_params)):
             # Define the space between each event
             between_event_param = f"T_{i}_{i+1}"
             add_event_to_param(
-                simple_time_params,
+                simple_div_params,
                 between_event_param,
                 space_between_events_min,
                 space_between_events_max,
             )
 
-            # add event to complex 
-            complex_time_params.append(
-                f"1 {unique_time_params[i]} = {between_event_param} + {unique_time_params[i-1]} output"
+            # add event to complex
+            complex_div_params.append(
+                f"1 {divergence_params[i]} = {between_event_param} + {divergence_params[i-1]} output"
             )
+    return simple_div_params, complex_div_params
 
+
+def get_admixture_event_params(admix_params, admix_dist):
+    return [
+        "0 {} {} {} {} output".format(
+            param, admix_dist["type"], admix_dist["min"], admix_dist["max"]
+        )
+        for param in admix_params
+    ]
+
+
+def get_historical_event_params(tpl, time_dist, admix_dist, param_type):
+    # TODO: check if there even are admix params
+    divergence_event_params_from_tpl = get_params_from_tpl(tpl, "TDIV")
+    admixture_event_params_from_tpl = get_params_from_tpl(tpl, "TADMIX")
+
+    # use the find unique params function
+    unique_divergence_params = find_unique_params(
+        divergence_event_params_from_tpl, r"\bTDIV\w*"
+    )
+    unique_admixture_params = find_unique_params(
+        admixture_event_params_from_tpl, r"\bTADMIX\w*"
+    )
+
+    simple_div_params, complex_div_params = get_divergence_event_params(
+        unique_divergence_params, time_dist
+    )
+
+    simple_admix_parmas = get_admixture_event_params(
+        unique_admixture_params, admix_dist
+    )
+
+    simple_time_params = simple_div_params + simple_admix_parmas
+    complex_time_params = complex_div_params
+    
     if param_type == "simple":
         return simple_time_params
     else:
         return complex_time_params
 
 
-def get_simple_params(tpl, mutation_rate_dist, ne_dist, mig_dist, time_dist):
+def get_simple_params(
+    tpl, mutation_rate_dist, ne_dist, mig_dist, time_dist, admix_dist
+):
     simple_params = []
     # get mutation rate params
     simple_params.extend(get_mutation_rate_params(mutation_rate_dist))
@@ -154,7 +180,9 @@ def get_simple_params(tpl, mutation_rate_dist, ne_dist, mig_dist, time_dist):
     simple_params.extend(get_migration_params(tpl, mig_dist))
 
     # get historical event params
-    simple_params.extend(get_historical_event_params(tpl, time_dist, "simple"))
+    simple_params.extend(
+        get_historical_event_params(tpl, time_dist, admix_dist, "simple")
+    )
     return simple_params
 
 
@@ -163,7 +191,9 @@ def get_complex_params():
     return []
 
 
-def create_est(tpl_filepath, mutation_rate_dist, ne_dist, mig_dist, time_dist):
+def create_est(
+    tpl_filepath, mutation_rate_dist, ne_dist, mig_dist, time_dist, admix_dist
+):
     # convert tpl file to list
     tpl = []
     with open(tpl_filepath, "r") as tpl_file:
@@ -176,7 +206,8 @@ def create_est(tpl_filepath, mutation_rate_dist, ne_dist, mig_dist, time_dist):
         mutation_rate_dist=mutation_rate_dist,
         ne_dist=ne_dist,
         mig_dist=mig_dist,
-        time_dist=time_dist
+        time_dist=time_dist,
+        admix_dist=admix_dist,
     )
 
     # get complex params
@@ -190,10 +221,12 @@ ne_dist = {"min": 1e-7, "max": 1e-9, "type": "unif"}
 mutation_rate_dist = {"min": 1e-7, "max": 1e-9, "type": "unif"}
 mig_dist = {"min": 1e-7, "max": 1e-9, "type": "unif"}
 time_dist = {"min": 1e-7, "max": 1e-9, "type": "unif"}
+admix_dist = {"min": 1e-7, "max": 1e-9, "type": "unif"}
 create_est(
     tpl_filepath=tpl_filepath,
     mutation_rate_dist=mutation_rate_dist,
     ne_dist=ne_dist,
     mig_dist=mig_dist,
-    time_dist=time_dist
+    time_dist=time_dist,
+    admix_dist=admix_dist,
 )
