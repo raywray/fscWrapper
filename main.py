@@ -43,10 +43,10 @@ def run_simluations(user_params, num_of_sims):
         est_filename = f"{user_params["FSC_INPUT_PREFIX"]}.est"
 
         # Generate random tpl & est files
-        generate_random_tpl.generate_random_tpl_parameters(
+        generate_random_tpl.generate_random_params(
             tpl_filename, user_params["NUM_POPS"], user_params["SAMPLE_SIZES"]
         )
-        generate_random_est.create_est(
+        generate_random_est.generate_random_params(
             tpl_filename,
             est_filename,
             **user_params["MODEL_PARAMS"]
@@ -66,7 +66,7 @@ def run(user_params):
     # Create output directory
     create_directory("output")
 
-    num_of_sims = 3  # TODO: hard-coded, but can change
+    num_of_sims = 10  # TODO: hard-coded, but can change
 
     # run simulations
     run_simluations(user_params, num_of_sims)

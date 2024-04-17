@@ -1,20 +1,14 @@
 import re
-from itertools import chain
 
 
-def populate_est(simple_params, complex_params, mutation_rate_dist):
-    return (
+def write_est(simple_params, complex_params, est_filename):
+    lines = (
         [
             "// Priors and rules file",
             "// *********************",
             "",
             "[PARAMETERS]",
             "//#isInt? #name #dist. #min #max",
-            "0 MUTRATE {} {} {} output".format(
-                mutation_rate_dist["type"],
-                mutation_rate_dist["min"],
-                mutation_rate_dist["max"],
-            ),
         ]
         + [param for param in simple_params]
         + [
@@ -25,265 +19,231 @@ def populate_est(simple_params, complex_params, mutation_rate_dist):
         + [param for param in complex_params]
     )
 
+    # write to file
+    with open(est_filename, "w") as file:
+        for line in lines:
+            file.write(line + "\n")
 
-def get_population_params_from_tpl(input_template):
-    return [line for line in input_template if "NPOP_" in line]
+
+def get_params_from_tpl(tpl, search_params):
+    return [line for line in tpl if search_params in line]
 
 
-def get_population_parameters(input_template, ne_dist):
-    population_parameters = get_population_params_from_tpl(input_template)
-    formatted_population_parameters = [
+def get_mutation_rate_params(mutation_rate_dist):
+    return [
+        "0 MUTRATE {} {} {} output".format(
+            mutation_rate_dist["type"],
+            mutation_rate_dist["min"],
+            mutation_rate_dist["max"],
+        )
+    ]
+
+
+def get_effective_size_params(tpl, effective_pop_size_dist):
+    # parse tpl
+    effective_size_params_from_tpl = get_params_from_tpl(tpl, search_params="NPOP_")
+    effective_size_params = [
         "1 {} {} {} {} output".format(
-            param, ne_dist["type"], ne_dist["min"], ne_dist["max"]
+            param, effective_pop_size_dist["type"], effective_pop_size_dist["min"], effective_pop_size_dist["max"]
         )
-        for param in population_parameters
+        for param in effective_size_params_from_tpl
     ]
-    return formatted_population_parameters
+    # set values
+    return effective_size_params
 
-# TODO:this is the way I tried following Arun's code
-# def get_resize_parameters(input_template, resize_dist):
-#     population_params = get_population_params_from_tpl(input_template)
-#     resize_params = []
-#     for pop in population_params:
-#         pop_number = pop.split("_")[1]
-#         resize_params.append(
-#             "0 {} {} {} {} hide".format(
-#                 f"N{pop_number}RESIZE",
-#                 resize_dist["type"],
-#                 resize_dist["min"],
-#                 resize_dist["max"],
-#             )
-#         )
-#     return resize_params
 
-def is_population_expanding(input_template):
-    # find the growth rates
-    start_index = (
-        input_template.index(
-            "//Growth rates : negative growth implies population expansion"
+def find_unique_params(list_to_search, pattern_to_find):
+    unique_params = set()
+    for element in list_to_search:
+        unique_params.update(re.findall(pattern_to_find, element))
+    return list(unique_params)
+
+
+def get_migration_params(tpl, migration_dist):
+    mig_params_from_tpl = get_params_from_tpl(tpl, "MIG")
+    migration_pattern = r"\bMIG\w*"
+
+    unique_migration_params = find_unique_params(mig_params_from_tpl, migration_pattern)
+    migration_params = [
+        "0 {} {} {} {} output".format(
+            param, migration_dist["type"], migration_dist["min"], migration_dist["max"]
         )
-        + 1
-    )
-    end_index = input_template.index(
-        "//Number of migration matrices : 0 implies no migration between demes"
-    )
-    growth_rates = input_template[start_index:end_index]
-
-    if growth_rates[0] != "0":
-        return True
-    else:
-        return False
-
-
-def get_growth_rate_params(input_template):
-    population_params = get_population_params_from_tpl(input_template)
-    
-    all_splits = []
-    ratios = []
-    logs = []
-    growths = []
-    
-    time_params = get_time_params_from_tpl(input_template)
-    
-    for pop in population_params:
-        pop_number = pop.split("_")[1]
-        
-        all_splits.append(
-            f"1 N{pop_number}atSPLIT = {pop}*N{pop_number}RESIZE output"
-        )
-        
-        ratios.append(f"0 tmpRATIOP{pop_number} = N{pop_number}atSPLIT/{pop} hide")
-        
-        logs.append(f"0 tmplogP{pop_number} = log(tmpRATIOP{pop_number}) hide")
-        
-        growths.append(
-            f"0 GrowthP{pop_number} = tmplogP{pop_number}/{time_params[0]} output"
-        )
-
-    return all_splits + ratios + logs + growths
-
-
-def get_migration_parameters(input_template, mig_dist):
-    # get parameters from the migraion matrix 0
-    migration_matrix_0_location = [
-        i
-        for i, item in enumerate(input_template)
-        if re.search("Migration matrix 0", item)
-    ][0] + 1
-    migration_matrix_1_location = [
-        i
-        for i, item in enumerate(input_template)
-        if re.search("Migration matrix 1", item)
-    ][0]
-
-    current_migration_parameter_location = input_template[
-        migration_matrix_0_location:migration_matrix_1_location
+        for param in unique_migration_params
     ]
+    return migration_params
 
-    # extract only the MIG_POP information
-    current_migration_parameters = sorted(
-        list(
-            set(
-                chain.from_iterable(
-                    [item.split(" ") for item in current_migration_parameter_location]
-                )
+
+def get_divergence_event_params(divergence_params, time_dist):
+    simple_div_params = []
+    complex_div_params = []
+    space_between_events_min = 0
+    space_between_events_max = (
+        1000  # NOTE: OG stephanie code was 500. HARDCODED, can change
+    )
+
+    # define some functions
+    def add_event_to_param(time_parameters, event, min, max):
+        time_parameters.append(
+            "1 {} {} {} {} output".format(
+                event,
+                time_dist["type"],
+                min,
+                max,
             )
         )
-    )[1:]
 
-    # create migration parameters
-    migration_parameters = [
-        "0 {} {} {} {} output".format(
-            param, mig_dist["type"], mig_dist["min"], mig_dist["max"]
+    def add_first_div_event_to_simple_params():
+        add_event_to_param(
+            simple_div_params,
+            divergence_params[0],
+            time_dist["min"],
+            time_dist["max"],
         )
-        for param in current_migration_parameters
-    ]
-    return migration_parameters
 
-# TODO: this is from stephanie's NEW code
-# Resizing parameters (past population size / future population size)
-# def get_res_parameters(input_template, res_dist):
-#     res_params = []
-#     if any("RES_" in line for line in input_template):
-#         res_params_from_tpl = set(
-#             re.findall(get_parameter_pattern("RES"), " ".join(input_template))
-#         )
-#         res_params = [
-#             "0 {} {} {} {} output".format(
-#                 param, res_dist["type"], res_dist["min"], res_dist["max"]
-#             )
-#             for param in res_params_from_tpl
-#         ]
-#     return res_params
+    # decide whether time or complex param
+    if len(divergence_params) == 1:
+        # only one, add to simple
+        add_first_div_event_to_simple_params()
+
+    elif len(divergence_params) > 1:
+        # there are more -- add the first to simple, rest to complex
+        # NOTE: in OG stephanie code, the min was 1 and max 600
+        add_first_div_event_to_simple_params()
+
+        for i in range(1, len(divergence_params)):
+            # Define the space between each event
+            between_event_param = f"T_{i}_{i+1}"
+            add_event_to_param(
+                simple_div_params,
+                between_event_param,
+                space_between_events_min,
+                space_between_events_max,
+            )
+
+            # add event to complex
+            complex_div_params.append(
+                f"1 {divergence_params[i]} = {between_event_param} + {divergence_params[i-1]} output"
+            )
+    return simple_div_params, complex_div_params
 
 
-def get_parameter_pattern(prefix):
-    return rf"{prefix}_[a-zA-Z0-9]+"
-
-
-def get_admixture_parameters(input_template, admix_dist):
-    admixture_parameters = set(
-        re.findall(get_parameter_pattern("a"), " ".join(input_template))
-    )
-    formatted_admixture_parameters = [
+def get_admixture_event_params(admix_params, admix_dist):
+    return [
         "0 {} {} {} {} output".format(
             param, admix_dist["type"], admix_dist["min"], admix_dist["max"]
         )
-        for param in admixture_parameters
-    ]
-    return formatted_admixture_parameters
-
-
-def get_time_params_from_tpl(input_template):
-    time_parameter_locations = [
-        i for i, item in enumerate(input_template) if re.search("TDIV|TAdm", item)
-    ]
-    time_pattern = get_parameter_pattern("^(TDIV|TAdm)")
-    time_parameters = [
-        re.match(time_pattern, input_template[i]).group()
-        for i in time_parameter_locations
-        if re.match(time_pattern, input_template[i])
+        for param in admix_params
     ]
 
-    return time_parameters
 
+def get_historical_event_params(tpl, time_dist, admix_dist, param_type):
+    # TODO: check if there even are admix params
+    divergence_event_params_from_tpl = get_params_from_tpl(tpl, "TDIV")
+    admixture_event_params_from_tpl = get_params_from_tpl(tpl, "TADMIX")
 
-def get_time_parameters(input_template, time_dist):
-    simple_time_parameters = []
-    complex_time_parameters = []
-
-    # Find all occurrences of time parameters (TDIV or TAdm) in the input template
-    time_parameters = get_time_params_from_tpl(input_template)
-
-    # Handle the time space between each event
-    if len(time_parameters) == 1:
-        simple_time_parameters.append(
-            "1 {} {} {} {} output".format(
-                time_parameters[0],
-                time_dist["type"],
-                time_dist["single_min"],
-                time_dist["single_max"],
-            )
-        )
-    elif len(time_parameters) > 1:
-        simple_time_parameters.append(
-            "1 {} {} {} {} output".format(
-                time_parameters[0],
-                time_dist["type"],
-                time_dist["multiple_min"],
-                time_dist["multiple_max"],
-            )
-        )
-        for i in range(1, len(time_parameters)):
-            # Define the space between each event
-            extra_time_parameter = f"T_{i}_{i+1}"
-            simple_time_parameters.append(
-                "1 {} {} {} {} hide".format(
-                    extra_time_parameter,
-                    time_dist["type"],
-                    time_dist["extra_min"],
-                    time_dist["extra_max"],
-                )
-            )
-            complex_time_parameters.append(
-                f"1 {time_parameters[i]} = {extra_time_parameter} + {time_parameters[i-1]} output"
-            )
-    return simple_time_parameters, complex_time_parameters
-
-
-# this function generates an estimation file for a tpl template
-def create_est(
-    input_template_filepath,
-    est_filename="random.est",
-    mutation_rate_dist={},
-    effective_pop_size_dist={},
-    admix_dist={},
-    # res_dist={}, #TODO: maybe uncomment
-    migration_dist={},
-    time_dist={},
-    # resize_dist={},
-):
-    input_template = []
-
-    with open(input_template_filepath, "r") as inFile:
-        for line in inFile:
-            input_template.append(line.strip())
-
-    # Initialize lists for parameters
-    simple_parameters = []
-    complex_parameters = []
-
-    # Population parameters
-    simple_parameters.extend(get_population_parameters(input_template, effective_pop_size_dist))
-
-    # Resize parameters ONLY if expansion TODO: reconsider
-    # should_pop_expand = is_population_expanding(input_template)
-    # if should_pop_expand:
-    #     simple_parameters.extend(get_resize_parameters(input_template, resize_dist))
-
-    # Migration rate parameters
-    simple_parameters.extend(get_migration_parameters(input_template, migration_dist))
-    
-    # Resize parameters
-    # simple_parameters.extend(get_res_parameters(input_template, res_dist)) TODO: maybe uncomment
-
-    # Time parameters
-    simple_time_parameters, complex_time_parameters = get_time_parameters(
-        input_template, time_dist
+    # use the find unique params function
+    unique_divergence_params = find_unique_params(
+        divergence_event_params_from_tpl, r"\bTDIV\w*"
     )
-    simple_parameters.extend(simple_time_parameters)
-    complex_parameters.extend(complex_time_parameters)
+    unique_admixture_params = find_unique_params(
+        admixture_event_params_from_tpl, r"\bTADMIX\w*"
+    )
 
-    # Admixture parameters
-    simple_parameters.extend(get_admixture_parameters(input_template, admix_dist))
+    simple_div_params, complex_div_params = get_divergence_event_params(
+        unique_divergence_params, time_dist
+    )
 
-    # Growth rate params, only if population is expanding
-    should_pop_expand = is_population_expanding(input_template)
-    if should_pop_expand:
-        complex_parameters.extend(get_growth_rate_params(input_template))
+    simple_admix_parmas = get_admixture_event_params(
+        unique_admixture_params, admix_dist
+    )
 
-    # Combine parameters & write to a file
-    est = populate_est(simple_parameters, complex_parameters, mutation_rate_dist)
-    with open(est_filename, "w") as file:
-        for line in est:
-            file.write(line + "\n")
+    simple_time_params = simple_div_params + simple_admix_parmas
+    complex_time_params = complex_div_params
+
+    if param_type == "simple":
+        return simple_time_params
+    else:
+        return complex_time_params
+
+
+def get_simple_params(
+    tpl, mutation_rate_dist, effective_pop_size_dist, migration_dist, time_dist, admix_dist
+):
+    simple_params = []
+    # get mutation rate params
+    simple_params.extend(get_mutation_rate_params(mutation_rate_dist))
+
+    # effective size params
+    simple_params.extend(get_effective_size_params(tpl, effective_pop_size_dist))
+
+    # get migration params
+    simple_params.extend(get_migration_params(tpl, migration_dist))
+
+    # get historical event params
+    simple_params.extend(
+        get_historical_event_params(tpl, time_dist, admix_dist, "simple")
+    )
+    return simple_params
+
+
+def get_resize_params(tpl):
+    complex_resize_params = []
+    resize_parms_from_tpl = get_params_from_tpl(tpl, "RESIZE")
+    if resize_parms_from_tpl:
+        complex_resize_params.append("0 RESIZE = ANCSIZE/NPOP_0 hide")
+
+    return complex_resize_params
+
+
+def get_complex_params(tpl, time_dist, admix_dist):
+    complex_params = []
+
+    # get resize params
+    complex_resize_params = get_resize_params(tpl)
+    # need to add ancsize to simple params
+    if complex_resize_params:
+        add_ancsize_param = True
+        complex_params.extend(complex_resize_params)
+    else:
+        add_ancsize_param = False
+
+    # get complex time params
+    complex_params.extend(
+        get_historical_event_params(tpl, time_dist, admix_dist, "complex")
+    )
+
+    return complex_params, add_ancsize_param
+
+
+def generate_random_params(
+    tpl_filepath, est_filename, mutation_rate_dist, effective_pop_size_dist, migration_dist, time_dist, admix_dist
+):
+    # convert tpl file to list
+    tpl = []
+    with open(tpl_filepath, "r") as tpl_file:
+        for line in tpl_file:
+            tpl.append(line.strip())
+
+    # get simple params
+    simple_params = get_simple_params(
+        tpl=tpl,
+        mutation_rate_dist=mutation_rate_dist,
+        effective_pop_size_dist=effective_pop_size_dist,
+        migration_dist=migration_dist,
+        time_dist=time_dist,
+        admix_dist=admix_dist,
+    )
+
+    # get complex params
+    complex_params, add_ancsize_param = get_complex_params(
+        tpl=tpl, time_dist=time_dist, admix_dist=admix_dist
+    )
+    if add_ancsize_param:
+        simple_params.append(
+            "1 ANCSIZE {} {} {} output".format(
+                effective_pop_size_dist["type"], effective_pop_size_dist["min"], effective_pop_size_dist["max"]
+            )
+        )
+
+    # write to est
+    write_est(simple_params, complex_params, est_filename)
