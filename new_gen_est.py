@@ -159,7 +159,7 @@ def get_historical_event_params(tpl, time_dist, admix_dist, param_type):
 
     simple_time_params = simple_div_params + simple_admix_parmas
     complex_time_params = complex_div_params
-    
+
     if param_type == "simple":
         return simple_time_params
     else:
@@ -186,9 +186,33 @@ def get_simple_params(
     return simple_params
 
 
-def get_complex_params():
-    # TODO: resize param (NANC/NPOP)
-    return []
+def get_resize_params(tpl):
+    complex_resize_params = []
+    resize_parms_from_tpl = get_params_from_tpl(tpl, "RESIZE")
+    if resize_parms_from_tpl:
+        complex_resize_params.append("0 RESIZE = ANCSIZE/NPOP_0 hide")
+
+    return complex_resize_params
+
+
+def get_complex_params(tpl, time_dist, admix_dist):
+    complex_params = []
+
+    # get resize params
+    complex_resize_params = get_resize_params(tpl)
+    # need to add ancsize to simple params
+    if complex_resize_params:
+        add_ancsize_param = True
+        complex_params.extend(complex_resize_params)
+    else:
+        add_ancsize_param = False
+
+    # get complex time params
+    complex_params.extend(
+        get_historical_event_params(tpl, time_dist, admix_dist, "complex")
+    )
+
+    return complex_params, add_ancsize_param
 
 
 def create_est(
@@ -211,7 +235,15 @@ def create_est(
     )
 
     # get complex params
-    complex_params = get_complex_params()
+    complex_params, add_ancsize_param = get_complex_params(
+        tpl=tpl, time_dist=time_dist, admix_dist=admix_dist
+    )
+    if add_ancsize_param:
+        simple_params.append(
+            "1 ANCSIZE {} {} {} output".format(
+                ne_dist["type"], ne_dist["min"], ne_dist["max"]
+            )
+        )
 
     write_est(simple_params, complex_params, "est_test.est")
 
