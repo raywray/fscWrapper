@@ -60,7 +60,8 @@ def get_population_effective_sizes(number_of_populations, ghost_present):
         f"NPOP_{i}" for i in get_population_list(number_of_populations, ghost_present)
     ]
 
-# TODO: delete? 
+
+# TODO: delete?
 def get_random_growth_rate():
     # according to my research, this is often 0.
     # Generate a random number between 0 and 1
@@ -71,6 +72,7 @@ def get_random_growth_rate():
         return random.uniform(
             -1, 1
         )  # Return a random value between -1 and 1 with a probability of 10%
+
 
 # TODO: will need to look at this again when putting more complex events back in
 def get_sources_and_sinks(ghost_present, number_of_populations):
@@ -105,7 +107,9 @@ def get_sources_and_sinks(ghost_present, number_of_populations):
 
     return sources, sinks
 
+
 # TODO: will need to look at this again when putting more complex events back in
+
 
 def populate_historical_event(
     event_type,
@@ -130,37 +134,61 @@ def populate_historical_event(
     )
 
 
-def get_divergence_events(
-    ghost_present, number_of_populations, pops_should_migrate
-):
+def get_divergence_events(ghost_present, number_of_populations, pops_should_migrate):
+    def get_deme(source_or_sink):
+        if str(source_or_sink) == "G":
+            return str(number_of_populations - 1)
+        else:
+            return str(source_or_sink)
+        
     divergence_events = []
     nodes = list(range(number_of_populations))
+
     if ghost_present:
         nodes.pop(-1)
-    number_of_sinks = random.choice(range(1, number_of_populations)) if ghost_present else random.choice(range(1, number_of_populations + 1))
+
+    number_of_sinks = (
+        random.choice(range(1, number_of_populations))
+        if ghost_present
+        else random.choice(range(1, number_of_populations + 1))
+    )
     sinks = random.sample(nodes, number_of_sinks)
     sources = [node for node in nodes if node not in sinks]
 
-    if ghost_present and random.choice([True, False]):
-        sources.append("G")
-    else:
-        sinks.append("G")
+    if ghost_present:
+        if random.choice([True, False]):
+            sources.append("G")
+        else:
+            sinks.append("G")
 
-    current_migration_matrix = str(len(sinks)) if pops_should_migrate else "0" # TODO: look at this again
+    current_migration_matrix = (
+        str(len(sinks)) if pops_should_migrate else "0"
+    )  # TODO: look at this again
 
     while sources or len(sinks) > 1:
         current_event = []
         cur_source = random.choice(sources) if sources else random.choice(sinks)
         sources.remove(cur_source) if sources else sinks.remove(cur_source)
         cur_sink = random.choice(sinks)
-        new_deme_size = f"RELANC{cur_source}{cur_sink}" 
-        current_event.extend([f"TDIV{cur_source}{cur_sink}", str(cur_source), str(cur_sink), "1", new_deme_size, "0", current_migration_matrix])
+        new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}", "1"])
+        ghost_deme = number_of_populations - 1
+        current_event.extend(
+            [
+                f"TDIV{cur_source}{cur_sink}",
+                get_deme(cur_source),
+                get_deme(cur_sink),
+                "1",
+                new_deme_size,
+                "0",
+                current_migration_matrix,
+            ]
+        )
         divergence_events.append(" ".join(current_event))
 
     return divergence_events
 
-# TODO: will need to look at this again when putting more complex events back in
 
+# TODO: will need to look at this again when putting more complex events back in
 def get_historical_event(
     event_type, ghost_present, number_of_populations, pops_should_migrate, migrants="0"
 ):
