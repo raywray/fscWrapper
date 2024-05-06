@@ -1,0 +1,24 @@
+FSC_INPUT_PREFIX: cactus
+SFS_TYPE: DAF
+NUM_POPS: 3
+SAMPLE_SIZES:
+  - 13 
+  - 24 
+  - 20
+MODEL_PARAMS:
+  mutation_rate_dist:
+    min: 6e-8
+    max: 6e-8
+    type: unif
+  effective_pop_size_dist:
+    min: 10
+    max: 2e6
+    type: unif
+  migration_dist:
+    min: 1e-10
+    max: 1e-1
+    type: logunif
+  time_dist:
+    type: unif
+    min: 5
+    max: 500

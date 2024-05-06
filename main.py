@@ -40,7 +40,9 @@ def run_simluations(user_params, num_of_sims):
 
         # Create filenames
         tpl_filename = f"{user_params["FSC_INPUT_PREFIX"]}.tpl"
+        # tpl_filename = "cactus.tpl"
         est_filename = f"{user_params["FSC_INPUT_PREFIX"]}.est"
+        # est_filename = "cactus.est"
 
         # Generate random tpl & est files
         generate_random_tpl.generate_random_params(
@@ -55,8 +57,10 @@ def run_simluations(user_params, num_of_sims):
         # Run fsc TODO: change so it runs each model 100 times
         # TODO: get best l hoods from this, compare each best with each best
         # TODO: change 10000 to 1000
-        command = f"fsc28 -t {tpl_filename} -e {est_filename} -d -0 -C 10 -n 10000 -L 40 -s 0 -M"
-        execute_command(command)
+        # TODO: keep the SFS type logic
+        command = f"fsc28 -t {tpl_filename} -e {est_filename} -{"d" if user_params["SFS_TYPE"] == "DAF" else "m"} -0 -C 10 -n 10000 -L 40 -s 0 -M"
+        # print(command) TODO: uncomment
+        # execute_command(command) TODO: uncomment
 
         # go back to root directory
         os.chdir("../..")
@@ -66,7 +70,7 @@ def run(user_params):
     # Create output directory
     create_directory("output")
 
-    num_of_sims = 10  # TODO: hard-coded, but can change
+    num_of_sims = 1  # TODO: hard-coded, but can change
 
     # run simulations
     run_simluations(user_params, num_of_sims)

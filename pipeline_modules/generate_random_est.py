@@ -44,7 +44,10 @@ def get_effective_size_params(tpl, effective_pop_size_dist):
     effective_size_params_from_tpl = get_params_from_tpl(tpl, search_params="NPOP_")
     effective_size_params = [
         "1 {} {} {} {} output".format(
-            param, effective_pop_size_dist["type"], effective_pop_size_dist["min"], effective_pop_size_dist["max"]
+            param,
+            effective_pop_size_dist["type"],
+            effective_pop_size_dist["min"],
+            effective_pop_size_dist["max"],
         )
         for param in effective_size_params_from_tpl
     ]
@@ -127,35 +130,30 @@ def get_divergence_event_params(divergence_params, time_dist):
     return simple_div_params, complex_div_params
 
 
-def get_admixture_event_params(admix_params, admix_dist):
+def get_admixture_event_params(admix_params, time_dist):
     return [
         "0 {} {} {} {} output".format(
-            param, admix_dist["type"], admix_dist["min"], admix_dist["max"]
+            param, time_dist["type"], time_dist["min"], time_dist["max"]
         )
         for param in admix_params
     ]
 
 
-def get_historical_event_params(tpl, time_dist, admix_dist, param_type):
+def get_historical_event_params(tpl, time_dist, param_type):
     # TODO: check if there even are admix params
-    divergence_event_params_from_tpl = get_params_from_tpl(tpl, "TDIV")
-    admixture_event_params_from_tpl = get_params_from_tpl(tpl, "TADMIX")
+    divergence_params = []
+    for element in get_params_from_tpl(tpl, "TDIV"):
+        divergence_params.extend(re.findall(r"\bTDIV\w*", element))
 
-    # use the find unique params function
-    unique_divergence_params = find_unique_params(
-        divergence_event_params_from_tpl, r"\bTDIV\w*"
-    )
-    unique_admixture_params = find_unique_params(
-        admixture_event_params_from_tpl, r"\bTADMIX\w*"
-    )
+    admixture_params = []
+    for element in get_params_from_tpl(tpl, "TADMIX"):
+        admixture_params.extend(re.findall(r"\bTADMIX\w*", element))
 
     simple_div_params, complex_div_params = get_divergence_event_params(
-        unique_divergence_params, time_dist
+        divergence_params, time_dist
     )
 
-    simple_admix_parmas = get_admixture_event_params(
-        unique_admixture_params, admix_dist
-    )
+    simple_admix_parmas = get_admixture_event_params(admixture_params, time_dist)
 
     simple_time_params = simple_div_params + simple_admix_parmas
     complex_time_params = complex_div_params
@@ -167,7 +165,7 @@ def get_historical_event_params(tpl, time_dist, admix_dist, param_type):
 
 
 def get_simple_params(
-    tpl, mutation_rate_dist, effective_pop_size_dist, migration_dist, time_dist, admix_dist
+    tpl, mutation_rate_dist, effective_pop_size_dist, migration_dist, time_dist
 ):
     simple_params = []
     # get mutation rate params
@@ -180,43 +178,67 @@ def get_simple_params(
     simple_params.extend(get_migration_params(tpl, migration_dist))
 
     # get historical event params
-    simple_params.extend(
-        get_historical_event_params(tpl, time_dist, admix_dist, "simple")
-    )
+    simple_params.extend(get_historical_event_params(tpl, time_dist, "simple"))
     return simple_params
 
 
 def get_resize_params(tpl):
     complex_resize_params = []
-    resize_parms_from_tpl = get_params_from_tpl(tpl, "RESIZE")
-    if resize_parms_from_tpl:
-        complex_resize_params.append("0 RESIZE = ANCSIZE/NPOP_0 hide")
+    simple_params_to_add = []
+    resize_lines_from_tpl = get_params_from_tpl(tpl, "RELANC")
+    resize_params = [
+        element
+        for variable in resize_lines_from_tpl
+        for element in variable.split()
+        if element.startswith("RELANC")
+    ]
+    
+    if resize_lines_from_tpl:
+        simple_params_to_add = []
+        # handle the first in the list
+        first_resize_param = resize_params[0]
+        sink_source = first_resize_param[len("RELANC"):]
+        complex_resize_params.append(
+            f"0 {first_resize_param} = N_ANCALL/N_ANC{sink_source} hide"
+        )
+        resize_params.remove(first_resize_param)
+        simple_params_to_add.append("N_ANCALL")
+        simple_params_to_add.append(f"N_ANC{sink_source}")
+        # handle rest of the names
+        for param in resize_params:
+            sink_source = param[len("RELANC"):]
+            
+            complex_resize_params.append(
+                f"0 {param} = N_ANC{sink_source[0]}{sink_source[1]}/N_POP{sink_source[1]} hide"
+            )
+            simple_params_to_add.append(f"N_ANC{sink_source[0]}{sink_source[1]}")
+        
 
-    return complex_resize_params
+    return complex_resize_params, simple_params_to_add
 
 
-def get_complex_params(tpl, time_dist, admix_dist):
+def get_complex_params(tpl, time_dist):
     complex_params = []
 
     # get resize params
-    complex_resize_params = get_resize_params(tpl)
+    complex_resize_params, simple_params_to_add = get_resize_params(tpl)
     # need to add ancsize to simple params
     if complex_resize_params:
-        add_ancsize_param = True
         complex_params.extend(complex_resize_params)
-    else:
-        add_ancsize_param = False
 
     # get complex time params
-    complex_params.extend(
-        get_historical_event_params(tpl, time_dist, admix_dist, "complex")
-    )
+    complex_params.extend(get_historical_event_params(tpl, time_dist, "complex"))
 
-    return complex_params, add_ancsize_param
+    return complex_params, simple_params_to_add
 
 
 def generate_random_params(
-    tpl_filepath, est_filename, mutation_rate_dist, effective_pop_size_dist, migration_dist, time_dist, admix_dist
+    tpl_filepath,
+    est_filename,
+    mutation_rate_dist,
+    effective_pop_size_dist,
+    migration_dist,
+    time_dist,
 ):
     # convert tpl file to list
     tpl = []
@@ -231,19 +253,22 @@ def generate_random_params(
         effective_pop_size_dist=effective_pop_size_dist,
         migration_dist=migration_dist,
         time_dist=time_dist,
-        admix_dist=admix_dist,
     )
 
     # get complex params
-    complex_params, add_ancsize_param = get_complex_params(
-        tpl=tpl, time_dist=time_dist, admix_dist=admix_dist
+    complex_params, simple_params_to_add = get_complex_params(
+        tpl=tpl, time_dist=time_dist
     )
-    if add_ancsize_param:
-        simple_params.append(
-            "1 ANCSIZE {} {} {} output".format(
-                effective_pop_size_dist["type"], effective_pop_size_dist["min"], effective_pop_size_dist["max"]
+    if simple_params_to_add:
+        for param in simple_params_to_add:
+            simple_params.append(
+                "1 {} {} {} {} output".format(
+                    param,
+                    effective_pop_size_dist["type"],
+                    effective_pop_size_dist["min"],
+                    effective_pop_size_dist["max"],
+                )
             )
-        )
 
     # write to est
     write_est(simple_params, complex_params, est_filename)

@@ -28,7 +28,7 @@ def write_tpl(
         str(len(migration_matrices)),
         *flattened_migration_matrices,
         "//historical event: time, source, sink, migrants, new deme size, growth rate, migr mat index",
-        f"{len(historical_events)} historical events",
+        f"{len(historical_events)} historical event",
         *historical_events,
         "//Number of independent loci [chromosome]",
         "1 0",
@@ -60,7 +60,7 @@ def get_population_effective_sizes(number_of_populations, ghost_present):
         f"NPOP_{i}" for i in get_population_list(number_of_populations, ghost_present)
     ]
 
-
+# TODO: delete? 
 def get_random_growth_rate():
     # according to my research, this is often 0.
     # Generate a random number between 0 and 1
@@ -72,7 +72,7 @@ def get_random_growth_rate():
             -1, 1
         )  # Return a random value between -1 and 1 with a probability of 10%
 
-
+# TODO: will need to look at this again when putting more complex events back in
 def get_sources_and_sinks(ghost_present, number_of_populations):
     possible_sources = list(range(number_of_populations))
     possible_sinks = list(range(number_of_populations))
@@ -105,6 +105,7 @@ def get_sources_and_sinks(ghost_present, number_of_populations):
 
     return sources, sinks
 
+# TODO: will need to look at this again when putting more complex events back in
 
 def populate_historical_event(
     event_type,
@@ -130,40 +131,35 @@ def populate_historical_event(
 
 
 def get_divergence_events(
-    event_type, ghost_present, number_of_populations, pops_should_migrate
+    ghost_present, number_of_populations, pops_should_migrate
 ):
-    # TODO: fix so that there is a divergence event for each pop...
-    sources, sinks = get_sources_and_sinks(ghost_present, number_of_populations)
-    current_migration_matrix_index = len(sinks)  # TODO: look at this
-    time_events = []
+    divergence_events = []
+    nodes = list(range(number_of_populations))
+    if ghost_present:
+        nodes.pop(-1)
+    number_of_sinks = random.choice(range(1, number_of_populations)) if ghost_present else random.choice(range(1, number_of_populations + 1))
+    sinks = random.sample(nodes, number_of_sinks)
+    sources = [node for node in nodes if node not in sinks]
 
-    while len(sinks) > 0:
-        migrants = random.choice(["0", "1"])
-        growth_rate = get_random_growth_rate()
-        new_deme_size = random.choice(["0", "RESIZE"])
+    if ghost_present and random.choice([True, False]):
+        sources.append("G")
+    else:
+        sinks.append("G")
 
-        current_source = random.choice(sources)
-        current_sink = random.choice(sinks)
+    current_migration_matrix = str(len(sinks)) if pops_should_migrate else "0" # TODO: look at this again
 
-        time_events.append(
-            populate_historical_event(
-                event_type,
-                number_of_populations,
-                current_source,
-                current_sink,
-                migrants,
-                new_deme_size,
-                growth_rate,
-                current_migration_matrix_index if pops_should_migrate else 0,
-            )
-        )
+    while sources or len(sinks) > 1:
+        current_event = []
+        cur_source = random.choice(sources) if sources else random.choice(sinks)
+        sources.remove(cur_source) if sources else sinks.remove(cur_source)
+        cur_sink = random.choice(sinks)
+        new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}", "0"]) 
+        current_event.extend([f"TDIV{cur_source}{cur_sink}", str(cur_source), str(cur_sink), "1", new_deme_size, "0", current_migration_matrix])
+        divergence_events.append(" ".join(current_event))
 
-        sources.append(current_sink)
-        sinks.remove(current_sink)
-        current_migration_matrix_index -= 1
+    return divergence_events
 
-    return time_events
-
+# TODO: will need to look at this again when putting more complex events back in
 
 def get_historical_event(
     event_type, ghost_present, number_of_populations, pops_should_migrate, migrants="0"
@@ -289,12 +285,12 @@ def generate_random_params(
 
     # Step 4 -- got something. TODO: come back and make sure this is what we want
     # determine if they're should be migration
-    pops_should_migrate = random.choice([True, False])
+    # pops_should_migrate = random.choice([True, False]) TODO: uncomment
+    pops_should_migrate = False  # TODO: delete
     historical_events = []
 
     # get divergence events
     divergence_events = get_divergence_events(
-        event_type="TDIV",
         ghost_present=add_ghost,
         number_of_populations=number_of_populations,
         pops_should_migrate=pops_should_migrate,
@@ -303,15 +299,16 @@ def generate_random_params(
 
     # randomize adding admixture
     # TODO: randomize how many events
-    if random.choice([True, False]):
-        admixture_events = get_historical_event(
-            event_type="TADMIX",
-            ghost_present=add_ghost,
-            number_of_populations=number_of_populations,
-            migrants=random.uniform(0, 1),
-            pops_should_migrate=pops_should_migrate
-        )
-        historical_events.extend(admixture_events)
+    # TODO: uncomment
+    # if random.choice([True, False]):
+    #     admixture_events = get_historical_event(
+    #         event_type="TADMIX",
+    #         ghost_present=add_ghost,
+    #         number_of_populations=number_of_populations,
+    #         migrants=random.uniform(0, 1),
+    #         pops_should_migrate=pops_should_migrate
+    #     )
+    #     historical_events.extend(admixture_events)
 
     # TODO: add bottlenecks, exponential growths.
 
