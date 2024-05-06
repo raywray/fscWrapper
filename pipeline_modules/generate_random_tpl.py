@@ -153,7 +153,7 @@ def get_divergence_events(
         cur_source = random.choice(sources) if sources else random.choice(sinks)
         sources.remove(cur_source) if sources else sinks.remove(cur_source)
         cur_sink = random.choice(sinks)
-        new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}", "0"]) 
+        new_deme_size = f"RELANC{cur_source}{cur_sink}" 
         current_event.extend([f"TDIV{cur_source}{cur_sink}", str(cur_source), str(cur_sink), "1", new_deme_size, "0", current_migration_matrix])
         divergence_events.append(" ".join(current_event))
 

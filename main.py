@@ -59,8 +59,8 @@ def run_simluations(user_params, num_of_sims):
         # TODO: change 10000 to 1000
         # TODO: keep the SFS type logic
         command = f"fsc28 -t {tpl_filename} -e {est_filename} -{"d" if user_params["SFS_TYPE"] == "DAF" else "m"} -0 -C 10 -n 10000 -L 40 -s 0 -M"
-        # print(command) TODO: uncomment
-        # execute_command(command) TODO: uncomment
+        print(command) 
+        execute_command(command)
 
         # go back to root directory
         os.chdir("../..")
@@ -70,7 +70,7 @@ def run(user_params):
     # Create output directory
     create_directory("output")
 
-    num_of_sims = 1  # TODO: hard-coded, but can change
+    num_of_sims = 10  # TODO: hard-coded, but can change
 
     # run simulations
     run_simluations(user_params, num_of_sims)

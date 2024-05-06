@@ -209,7 +209,7 @@ def get_resize_params(tpl):
             sink_source = param[len("RELANC"):]
             
             complex_resize_params.append(
-                f"0 {param} = N_ANC{sink_source[0]}{sink_source[1]}/N_POP{sink_source[1]} hide"
+                f"0 {param} = N_ANC{sink_source[0]}{sink_source[1]}/NPOP_{sink_source[1]} hide"
             )
             simple_params_to_add.append(f"N_ANC{sink_source[0]}{sink_source[1]}")
         
