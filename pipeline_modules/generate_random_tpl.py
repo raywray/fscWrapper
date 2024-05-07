@@ -57,7 +57,7 @@ def get_population_list(num_pops, ghost_present):
 
 def get_population_effective_sizes(number_of_populations, ghost_present):
     return [
-        f"NPOP_{i}" for i in get_population_list(number_of_populations, ghost_present)
+        f"N_POP{i}" for i in get_population_list(number_of_populations, ghost_present)
     ]
 
 

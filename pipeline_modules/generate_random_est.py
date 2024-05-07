@@ -41,7 +41,7 @@ def get_mutation_rate_params(mutation_rate_dist):
 
 def get_effective_size_params(tpl, effective_pop_size_dist):
     # parse tpl
-    effective_size_params_from_tpl = get_params_from_tpl(tpl, search_params="NPOP_")
+    effective_size_params_from_tpl = get_params_from_tpl(tpl, search_params="N_POP")
     effective_size_params = [
         "1 {} {} {} {} output".format(
             param,
@@ -209,7 +209,7 @@ def get_resize_params(tpl):
             sink_source = param[len("RELANC"):]
             
             complex_resize_params.append(
-                f"0 {param} = N_ANC{sink_source[0]}{sink_source[1]}/NPOP_{sink_source[1]} hide"
+                f"0 {param} = N_ANC{sink_source[0]}{sink_source[1]}/N_POP{sink_source[1]} hide"
             )
             simple_params_to_add.append(f"N_ANC{sink_source[0]}{sink_source[1]}")
         
