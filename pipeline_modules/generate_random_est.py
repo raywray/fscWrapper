@@ -1,6 +1,5 @@
 import re
 
-
 def write_est(simple_params, complex_params, est_filename):
     lines = (
         [
@@ -55,14 +54,15 @@ def get_effective_size_params(tpl, effective_pop_size_dist):
     return effective_size_params
 
 
-def find_unique_params(list_to_search, pattern_to_find):
-    unique_params = set()
-    for element in list_to_search:
-        unique_params.update(re.findall(pattern_to_find, element))
-    return list(unique_params)
-
-
 def get_migration_params(tpl, migration_dist):
+    # define nested functions
+    def find_unique_params(list_to_search, pattern_to_find):
+        unique_params = set()
+        for element in list_to_search:
+            unique_params.update(re.findall(pattern_to_find, element))
+        return list(unique_params)
+    
+    # get the migration parameters from tpl
     mig_params_from_tpl = get_params_from_tpl(tpl, "MIG")
     migration_pattern = r"\bMIG\w*"
 
@@ -77,14 +77,7 @@ def get_migration_params(tpl, migration_dist):
 
 
 def get_divergence_event_params(divergence_params, time_dist):
-    simple_div_params = []
-    complex_div_params = []
-    space_between_events_min = 0
-    space_between_events_max = (
-        1000  # NOTE: OG stephanie code was 500. HARDCODED, can change
-    )
-
-    # define some functions
+    # define nested functions
     def add_event_to_param(time_parameters, event, min, max):
         time_parameters.append(
             "1 {} {} {} {} output".format(
@@ -102,6 +95,14 @@ def get_divergence_event_params(divergence_params, time_dist):
             time_dist["min"],
             time_dist["max"],
         )
+
+    # create base values
+    simple_div_params = []
+    complex_div_params = []
+    space_between_events_min = 0
+    space_between_events_max = (
+        1000  # TODO: OG stephanie code was 500. HARDCODED, can change
+    )
 
     # decide whether time or complex param
     if len(divergence_params) == 1:
