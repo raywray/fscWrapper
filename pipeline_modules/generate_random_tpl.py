@@ -161,9 +161,8 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
         else:
             sinks.append("G")
 
-    current_migration_matrix = (
-        str(len(sinks)) if pops_should_migrate else "0"
-    )  # TODO: look at this again
+    # the first divergence event should be in mig mat 1 
+    current_migration_matrix = 1 if pops_should_migrate else 0
 
     while sources or len(sinks) > 1:
         current_event = []
@@ -171,7 +170,6 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
         sources.remove(cur_source) if sources else sinks.remove(cur_source)
         cur_sink = random.choice(sinks)
         new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}", "1"])
-        ghost_deme = number_of_populations - 1
         current_event.extend(
             [
                 f"TDIV{cur_source}{cur_sink}",
@@ -180,10 +178,11 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
                 "1",
                 new_deme_size,
                 "0",
-                current_migration_matrix,
+                str(current_migration_matrix),
             ]
         )
         divergence_events.append(" ".join(current_event))
+        current_migration_matrix += 1
 
     return divergence_events
 
@@ -193,7 +192,7 @@ def get_historical_event(
     event_type, ghost_present, number_of_populations, pops_should_migrate, migrants="0"
 ):
     sources, sinks = get_sources_and_sinks(ghost_present, number_of_populations)
-    migration_matrix_index = len(sinks)  # TODO: look at this
+    migration_matrix_index = len(sinks)  # TODO: look at this, can't get a good matrix until this is fixed
     growth_rate = 0
     new_deme_size = 0
 
@@ -217,13 +216,6 @@ def get_historical_event(
     return historical_event
 
 
-def get_last_matrix(num_pops):
-    matrix_label = f"//Migration matrix {num_pops - 1}"
-    values = [["0.000"] * num_pops for _ in range(num_pops)]
-    last_matrix = [matrix_label] + [" ".join(row) for row in values]
-    return last_matrix
-
-
 def get_matrix_template(num_pops, ghost_present):
     matrix_label = "//Migration matrix 0"
     matrix = [matrix_label]
@@ -245,48 +237,56 @@ def get_matrix_template(num_pops, ghost_present):
 
 def get_migration_matrices(num_pops, ghost_present, divergence_events):
     matrices = []
+    # the first matrix is a complete migration matrix
     first_matrix = get_matrix_template(num_pops, ghost_present)
     matrices.append(first_matrix)
 
     def extract_coalescing_population(event):
-        match = re.search(r"^TDIV[0-9a-zA-Z]+([0-9a-zA-Z])\s", event)
+        # find the coalescing pop (the source)
+        match = re.search(r"^TDIV([0-9a-zA-Z])+[0-9a-zA-Z]\s", event)
         if match:
-            return match.group(1)
+            coalescing_population = match.group(1)
+            # if ghost, replace number with "G"
+            if ghost_present:
+                if coalescing_population == str(num_pops - 1):
+                    return "G"
+            return coalescing_population
         else:
             return None
 
-    # fill out the middle matrices, starting with the last
-    for i in reversed(range(len(divergence_events))):
-        current_matrix = get_matrix_template(num_pops, ghost_present)
+    # start with the fully filled out migration matrix
+    current_matrix = get_matrix_template(num_pops, ghost_present)
+    
+    # loop through all divergence events going back in time
+    for i in range(len(divergence_events)): 
         current_event = divergence_events[i]
+        # find the migration matrix of the current event
         current_event_matrix_index = re.search(r"\d+$", current_event).group()
-        if int(current_event_matrix_index) == num_pops - 1:
-            # this is the last migration matrix
-            break
-        else:
-            coalescing_population = extract_coalescing_population(current_event)
-
-            coalescing_population_in_matrix_pattern = (
-                r"MIG{}[0-9a-zA-Z]*|MIG[0-9a-zA-Z]*{}".format(
-                    coalescing_population, coalescing_population
-                )
+        # get the coalescing population (the source)
+        coalescing_population = extract_coalescing_population(current_event)
+        coalescing_population_in_matrix_pattern = (
+            r"MIG{}[0-9a-zA-Z]*|MIG[0-9a-zA-Z]*{}".format(
+                coalescing_population, coalescing_population
             )
+        )
 
-            matrix_without_label = current_matrix.copy()
-            matrix_without_label.pop(0)
+        # make a temp matrix without the label
+        matrix_without_label = current_matrix[1:]
 
-            current_matrix = [
-                re.sub(coalescing_population_in_matrix_pattern, "0.000", line)
-                for line in matrix_without_label
-            ]
-            matrix_label = f"//Migration matrix {current_event_matrix_index}"
+        # replace any MIG param that has the coalescing population in it
+        current_matrix = [
+            re.sub(coalescing_population_in_matrix_pattern, "0.000", line)
+            for line in matrix_without_label
+        ]
+        # get updated matrix label
+        matrix_label = f"//Migration matrix {current_event_matrix_index}"
 
-            current_matrix.insert(0, matrix_label)
-
+        # add label to new matrix
+        current_matrix.insert(0, matrix_label)    
+        
+        # add to the matrices list
         matrices.append(current_matrix)
 
-    # append final matrix
-    matrices.append(get_last_matrix(num_pops))
     return matrices
 
 
@@ -313,8 +313,7 @@ def generate_random_params(
 
     # Step 4 -- got something. TODO: come back and make sure this is what we want
     # determine if they're should be migration
-    # pops_should_migrate = random.choice([True, False]) TODO: uncomment
-    pops_should_migrate = False  # TODO: delete
+    pops_should_migrate = random.choice([True, False])
     historical_events = []
 
     # get divergence events
