@@ -11,6 +11,7 @@ def write_tpl(
     migration_matrices,
     historical_events,
 ):
+    # flatten the nested list
     flattened_migration_matrices = []
     for matrix in migration_matrices:
         for line in matrix:
@@ -44,6 +45,7 @@ def write_tpl(
 
 
 def get_population_list(num_pops, ghost_present):
+    # this function returns the population names
     populations = []
     population_range = num_pops - 1 if ghost_present else num_pops
 
@@ -135,56 +137,76 @@ def populate_historical_event(
 
 
 def get_divergence_events(ghost_present, number_of_populations, pops_should_migrate):
+    # define nested functions
     def get_deme(source_or_sink):
+        # check to see if the source ro sink is a ghost
         if str(source_or_sink) == "G":
+            # if so, return the correct population number
             return str(number_of_populations - 1)
         else:
+            # if not, just return a string of the input
             return str(source_or_sink)
-        
+
+    # start by defining empty list
     divergence_events = []
+    # define all populations as nodes
     nodes = list(range(number_of_populations))
 
+    # if ghost present, will replace its index with "G"
     if ghost_present:
         nodes.pop(-1)
 
+    # randomly determine how many sinks
     number_of_sinks = (
         random.choice(range(1, number_of_populations))
         if ghost_present
         else random.choice(range(1, number_of_populations + 1))
     )
+    # assign pops as sinks
     sinks = random.sample(nodes, number_of_sinks)
+    # assign all other pops as sources (can be 0)
     sources = [node for node in nodes if node not in sinks]
 
+    # finish adding ghost as a source or sink if ghost exists
     if ghost_present:
         if random.choice([True, False]):
             sources.append("G")
         else:
             sinks.append("G")
 
-    # the first divergence event should be in mig mat 1 
+    # the first divergence event should be in mig mat 1
     current_migration_matrix = 1 if pops_should_migrate else 0
 
+    # iterate as long as there are sources, or at least 2 sinks (the sinks will act as sources as soon as the sources are gone)
     while sources or len(sinks) > 1:
+        # define empty event
         current_event = []
+        # randomly select a source
         cur_source = random.choice(sources) if sources else random.choice(sinks)
+        # remove the selected source from the sources list
         sources.remove(cur_source) if sources else sinks.remove(cur_source)
+        # randomly select a sink
         cur_sink = random.choice(sinks)
+        # randomly choose whether to resize the new deme or not (a deme size of "0" would result in extinction)
         new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}", "1"])
+        # add params to current event
         current_event.extend(
             [
                 f"TDIV{cur_source}{cur_sink}",
-                get_deme(cur_source),
-                get_deme(cur_sink),
-                "1",
-                new_deme_size,
-                "0",
+                get_deme(cur_source), 
+                get_deme(cur_sink), 
+                "1", # migrants
+                new_deme_size, 
+                "0", # growth rate
                 str(current_migration_matrix),
             ]
         )
+        # add event to divergence events
         divergence_events.append(" ".join(current_event))
+        # only increment migration matrix index if there should be migration
         if pops_should_migrate:
             current_migration_matrix += 1
-
+    
     return divergence_events
 
 
@@ -193,7 +215,9 @@ def get_historical_event(
     event_type, ghost_present, number_of_populations, pops_should_migrate, migrants="0"
 ):
     sources, sinks = get_sources_and_sinks(ghost_present, number_of_populations)
-    migration_matrix_index = len(sinks)  # TODO: look at this, can't get a good matrix until this is fixed
+    migration_matrix_index = len(
+        sinks
+    )  # TODO: look at this, can't get a good matrix until this is fixed
     growth_rate = 0
     new_deme_size = 0
 
@@ -218,6 +242,7 @@ def get_historical_event(
 
 
 def get_matrix_template(num_pops, ghost_present):
+    # this function filles out a completed migration matrix (i.e. migration between all pops)
     matrix_label = "//Migration matrix 0"
     matrix = [matrix_label]
 
@@ -237,11 +262,7 @@ def get_matrix_template(num_pops, ghost_present):
 
 
 def get_migration_matrices(num_pops, ghost_present, divergence_events):
-    matrices = []
-    # the first matrix is a complete migration matrix
-    first_matrix = get_matrix_template(num_pops, ghost_present)
-    matrices.append(first_matrix)
-
+    # define in nested functions
     def extract_coalescing_population(event):
         # find the coalescing pop (the source)
         match = re.search(r"^TDIV([0-9a-zA-Z])+[0-9a-zA-Z]\s", event)
@@ -255,11 +276,17 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
         else:
             return None
 
+    # start by defining empty list
+    matrices = []
+    # the first matrix is a complete migration matrix
+    first_matrix = get_matrix_template(num_pops, ghost_present)
+    matrices.append(first_matrix)
+
     # start with the fully filled out migration matrix
     current_matrix = get_matrix_template(num_pops, ghost_present)
-    
+
     # loop through all divergence events going back in time
-    for i in range(len(divergence_events)): 
+    for i in range(len(divergence_events)):
         current_event = divergence_events[i]
         # find the migration matrix of the current event
         current_event_matrix_index = re.search(r"\d+$", current_event).group()
@@ -283,8 +310,8 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
         matrix_label = f"//Migration matrix {current_event_matrix_index}"
 
         # add label to new matrix
-        current_matrix.insert(0, matrix_label)    
-        
+        current_matrix.insert(0, matrix_label)
+
         # add to the matrices list
         matrices.append(current_matrix)
 
