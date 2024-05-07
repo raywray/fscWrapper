@@ -182,7 +182,8 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
             ]
         )
         divergence_events.append(" ".join(current_event))
-        current_migration_matrix += 1
+        if pops_should_migrate:
+            current_migration_matrix += 1
 
     return divergence_events
 
