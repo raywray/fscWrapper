@@ -1,0 +1,6 @@
+name: fsc_wrapper_env
+
+channels:
+  - defaults
+dependencies:
+  - anaconda::pyyaml

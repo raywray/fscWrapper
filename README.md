@@ -8,3 +8,6 @@ To use fsc28, you need to add fsc28 to the path using `export PATH=$PATH:[path_t
 You may also need to change permissions. Do that by doing this: `chmod +x fsc28_linux64/fsc28`
 
 packages: conda install anaconda::pyyaml
+
+how to install all packages: 
+`conda env create -f environment.yml`
