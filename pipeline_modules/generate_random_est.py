@@ -104,7 +104,7 @@ def get_divergence_event_params(divergence_params, time_dist):
         1000  # TODO: OG stephanie code was 500. HARDCODED, can change
     )
 
-    # decide whether time or complex param
+    # decide whether simple or complex param
     if len(divergence_params) == 1:
         # only one, add to simple
         add_first_div_event_to_simple_params()
@@ -141,7 +141,11 @@ def get_admixture_event_params(admix_params, time_dist):
 
 
 def get_historical_event_params(tpl, time_dist, param_type):
-    # TODO: check if there even are admix params
+    # TODO: I don't think you have to split by event type -- just go in chronological order
+    # get all T* params
+    # figure out if simple or complex
+    # return simple or complex
+    
     divergence_params = []
     for element in get_params_from_tpl(tpl, "TDIV"):
         divergence_params.extend(re.findall(r"\bTDIV\w*", element))
@@ -150,10 +154,12 @@ def get_historical_event_params(tpl, time_dist, param_type):
     for element in get_params_from_tpl(tpl, "TADMIX"):
         admixture_params.extend(re.findall(r"\bTADMIX\w*", element))
 
+    # TODO: this part needs to be changed
     simple_div_params, complex_div_params = get_divergence_event_params(
         divergence_params, time_dist
     )
 
+    # and this
     simple_admix_parmas = get_admixture_event_params(admixture_params, time_dist)
 
     simple_time_params = simple_div_params + simple_admix_parmas

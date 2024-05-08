@@ -70,7 +70,7 @@ def run(user_params):
     # Create output directory
     create_directory("output")
 
-    num_of_sims = 3  # TODO: hard-coded, but can change
+    num_of_sims = 3  # TODO: hard-coded, but eventually 1000
 
     # run simulations
     run_simluations(user_params, num_of_sims)

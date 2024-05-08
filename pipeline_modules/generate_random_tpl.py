@@ -110,32 +110,6 @@ def get_sources_and_sinks(ghost_present, number_of_populations):
     return sources, sinks
 
 
-# TODO: will need to look at this again when putting more complex events back in
-
-
-def populate_historical_event(
-    event_type,
-    num_pops,
-    source,
-    sink,
-    migrants,
-    new_deme_size,
-    growth_rate,
-    mig_mat_index,
-):
-    return " ".join(
-        [
-            f"{event_type}{source}{sink}",
-            str(num_pops) if source == "G" else source,
-            str(num_pops) if sink == "G" else sink,
-            str(migrants),
-            str(new_deme_size),
-            str(growth_rate),
-            str(mig_mat_index),
-        ]
-    )
-
-
 def get_divergence_events(ghost_present, number_of_populations, pops_should_migrate):
     # define nested functions
     def get_deme(source_or_sink):
@@ -193,11 +167,11 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
         current_event.extend(
             [
                 f"TDIV{cur_source}{cur_sink}",
-                get_deme(cur_source), 
-                get_deme(cur_sink), 
-                "1", # migrants
-                new_deme_size, 
-                "0", # growth rate
+                get_deme(cur_source),
+                get_deme(cur_sink),
+                "1",  # migrants
+                new_deme_size,
+                "0",  # growth rate
                 str(current_migration_matrix),
             ]
         )
@@ -206,39 +180,79 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
         # only increment migration matrix index if there should be migration
         if pops_should_migrate:
             current_migration_matrix += 1
-    
+
     return divergence_events
 
 
-# TODO: will need to look at this again when putting more complex events back in
-def get_historical_event(
-    event_type, ghost_present, number_of_populations, pops_should_migrate, migrants="0"
-):
-    sources, sinks = get_sources_and_sinks(ghost_present, number_of_populations)
-    migration_matrix_index = len(
-        sinks
-    )  # TODO: look at this, can't get a good matrix until this is fixed
-    growth_rate = 0
-    new_deme_size = 0
+def get_admixture_events(ghost_present, num_pops):
+    # TODO: determine how many admixture events to add
+    sources, sinks = get_sources_and_sinks(
+        ghost_present, num_pops
+    )  # TODO: look at this again
+    migrants = random.uniform(0, 1)
 
     source = random.choice(sources)
     sink = random.choice(sinks)
 
-    historical_event = []
+    admixture_events = []
+    current_event = [
+        f"TADMIX{source}{sink}",
+        str(num_pops) if source == "G" else source,
+        str(num_pops) if sink == "G" else sink,
+        str(migrants),
+        "1",  # new deme size, 1 implies that the size of the sink deme remains unchanged
+        "0",  # growth rate
+        "0",  # migration matrix
+    ]
+    admixture_events.append(" ".join(current_event))
 
-    historical_event.append(
-        populate_historical_event(
-            event_type,
-            number_of_populations,
-            source,
-            sink,
-            migrants,
-            new_deme_size,
-            growth_rate,
-            migration_matrix_index if pops_should_migrate else 0,
-        )
-    )
-    return historical_event
+    return admixture_events
+
+
+def order_historical_events(historical_events):
+    # define nested functions
+    def extract_source_sink(event):
+        match = re.search(r"T*([0-9G]{2})", event)
+        source, sink = match.group(1)
+        return source, sink
+
+    ordered_historical_events = []
+    # step 1: divide them into sections
+    admix_events = []
+
+    for event in historical_events:
+        if "TDIV" in event:
+            # add div events to ordered bc they are already in order
+            ordered_historical_events.append(event)
+
+        elif "TADMIX" in event:
+            admix_events.append(event)
+        # TODO: add other events here
+
+    # step 2: put in random (but chronologically correct order)
+    # 1: firgue out where each admix should go (will need some randomness, ofc)
+    for admix_event in admix_events:
+        # extract the admix source and sink
+        admix_source, admix_sink = extract_source_sink(admix_event)
+
+        # initilalize list of possible places to insert admix event
+        possible_insertion_indeces = []
+
+        # loop through current ordered events
+        for event in ordered_historical_events:
+            event_source, event_sink = extract_source_sink(event)
+            # add the index of the event to possible indeces (when using list.insert, it will insert at that index and push everything else back)
+            possible_insertion_indeces.append(ordered_historical_events.index(event))
+
+            # check to see if either admix source or sink is dead in this event
+            # TODO: however, bottlenecks/expansions CAN happen after... so take that into account later
+            if admix_source == event_source or admix_sink == event_source:
+                break
+
+        insertion_index = random.choice(possible_insertion_indeces)
+        ordered_historical_events.insert(insertion_index, admix_event)
+
+    return ordered_historical_events
 
 
 def get_matrix_template(num_pops, ghost_present):
@@ -353,19 +367,19 @@ def generate_random_params(
     historical_events.extend(divergence_events)
 
     # randomize adding admixture
-    # TODO: randomize how many events
-    # TODO: uncomment
-    # if random.choice([True, False]):
-    #     admixture_events = get_historical_event(
-    #         event_type="TADMIX",
-    #         ghost_present=add_ghost,
-    #         number_of_populations=number_of_populations,
-    #         migrants=random.uniform(0, 1),
-    #         pops_should_migrate=pops_should_migrate
-    #     )
-    #     historical_events.extend(admixture_events)
+    # should there be migration if admixture? 
+    if pops_should_migrate:
+        if random.choice([True, False]):
+            admixture_events = get_admixture_events(
+                ghost_present=add_ghost, num_pops=number_of_populations
+            )
+            historical_events.extend(admixture_events)
 
     # TODO: add bottlenecks, exponential growths.
+    # TODO: order historical events
+    historical_events = order_historical_events(
+        historical_events=historical_events,
+    )
 
     # Step 5: build migration matrices (if there is migration) ✓
     if pops_should_migrate:
