@@ -17,7 +17,7 @@ def create_directory(dir_path):
     os.makedirs(dir_path, exist_ok=True)
 
 
-def prepare_run(cur_run):
+def run_setup(cur_run):
     # add fsc executable
     use_fsc.add_fsc_to_path()
     
@@ -36,7 +36,7 @@ def run_simluations(user_params, num_of_sims):
     # run x number of fsc simulations
     for i in range(1, num_of_sims + 1):
         # prepare folder for run
-        prepare_run(i)
+        run_setup(i)
 
         # Create filenames
         tpl_filename = f"{user_params["FSC_INPUT_PREFIX"]}.tpl"
@@ -70,7 +70,7 @@ def run(user_params):
     # Create output directory
     create_directory("output")
 
-    num_of_sims = 3  # TODO: hard-coded, but eventually 1000
+    num_of_sims = 10  # TODO: hard-coded, but eventually 1000
 
     # run simulations
     run_simluations(user_params, num_of_sims)

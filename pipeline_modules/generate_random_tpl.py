@@ -186,6 +186,7 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
 
 def get_admixture_events(ghost_present, num_pops):
     # TODO: determine how many admixture events to add
+    # TODO: consider resizing demes during admixture
     sources, sinks = get_sources_and_sinks(
         ghost_present, num_pops
     )  # TODO: look at this again
@@ -207,6 +208,29 @@ def get_admixture_events(ghost_present, num_pops):
     admixture_events.append(" ".join(current_event))
 
     return admixture_events
+
+
+def set_migration_matrix(events, event_index):
+    current_event = events[event_index]
+    possible_mig_mat_indeces = []
+
+    previous_event = events[event_index - 1] if event_index != 0 else None
+    next_event = events[event_index +1] if event_index != len(events) - 1 else None
+
+    migration_matrix_extraction_pattern = r"(\d+)$"
+    prev_match = re.search(migration_matrix_extraction_pattern, previous_event) if previous_event else None
+    next_match = re.search(migration_matrix_extraction_pattern, next_event) if next_event else None
+    
+    possible_mig_mat_indeces = [prev_match.group(1)] if prev_match else ["0"]
+    if next_match:
+        possible_mig_mat_indeces.append(next_match.group(1))
+
+    new_migration_matrix = random.choice(possible_mig_mat_indeces)
+    updated_current_event = re.sub(migration_matrix_extraction_pattern, new_migration_matrix, current_event)
+  
+    events[event_index] = updated_current_event
+    
+    return events
 
 
 def order_historical_events(historical_events):
@@ -251,6 +275,8 @@ def order_historical_events(historical_events):
 
         insertion_index = random.choice(possible_insertion_indeces)
         ordered_historical_events.insert(insertion_index, admix_event)
+        ordered_historical_events = set_migration_matrix(ordered_historical_events, insertion_index)
+
 
     return ordered_historical_events
 
@@ -367,7 +393,7 @@ def generate_random_params(
     historical_events.extend(divergence_events)
 
     # randomize adding admixture
-    # should there be migration if admixture? 
+    # TODO: should there be migration if admixture? can admixture only happen if there is migration? 
     if pops_should_migrate:
         if random.choice([True, False]):
             admixture_events = get_admixture_events(
