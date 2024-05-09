@@ -76,7 +76,7 @@ def get_migration_params(tpl, migration_dist):
     return migration_params
 
 
-def get_divergence_event_params(divergence_params, time_dist):
+def generate_simple_complex_historical_params(historical_params, time_dist):
     # define nested functions
     def add_event_to_param(time_parameters, event, min, max):
         time_parameters.append(
@@ -88,87 +88,62 @@ def get_divergence_event_params(divergence_params, time_dist):
             )
         )
 
-    def add_first_div_event_to_simple_params():
+    def add_first_event_to_simple_params():
         add_event_to_param(
-            simple_div_params,
-            divergence_params[0],
+            simple_params,
+            historical_params[0],
             time_dist["min"],
             time_dist["max"],
         )
 
     # create base values
-    simple_div_params = []
-    complex_div_params = []
+    simple_params = []
+    complex_params = []
     space_between_events_min = 0
     space_between_events_max = (
         1000  # TODO: OG stephanie code was 500. HARDCODED, can change
     )
 
     # decide whether simple or complex param
-    if len(divergence_params) == 1:
+    if len(historical_params) == 1:
         # only one, add to simple
-        add_first_div_event_to_simple_params()
+        add_first_event_to_simple_params()
 
-    elif len(divergence_params) > 1:
+    elif len(historical_params) > 1:
         # there are more -- add the first to simple, rest to complex
         # NOTE: in OG stephanie code, the min was 1 and max 600
-        add_first_div_event_to_simple_params()
+        add_first_event_to_simple_params()
 
-        for i in range(1, len(divergence_params)):
+        for i in range(1, len(historical_params)):
             # Define the space between each event
             between_event_param = f"T_{i}_{i+1}"
             add_event_to_param(
-                simple_div_params,
+                simple_params,
                 between_event_param,
                 space_between_events_min,
                 space_between_events_max,
             )
 
             # add event to complex
-            complex_div_params.append(
-                f"1 {divergence_params[i]} = {between_event_param} + {divergence_params[i-1]} output"
+            complex_params.append(
+                f"1 {historical_params[i]} = {between_event_param} + {historical_params[i-1]} output"
             )
-    return simple_div_params, complex_div_params
-
-
-def get_admixture_event_params(admix_params, time_dist):
-    return [
-        "0 {} {} {} {} output".format(
-            param, time_dist["type"], time_dist["min"], time_dist["max"]
-        )
-        for param in admix_params
-    ]
-
+    return simple_params, complex_params
 
 def get_historical_event_params(tpl, time_dist, param_type):
-    # TODO: I don't think you have to split by event type -- just go in chronological order
-    # get all T* params
-    # figure out if simple or complex
-    # return simple or complex
-    
-    divergence_params = []
-    for element in get_params_from_tpl(tpl, "TDIV"):
-        divergence_params.extend(re.findall(r"\bTDIV\w*", element))
 
-    admixture_params = []
-    for element in get_params_from_tpl(tpl, "TADMIX"):
-        admixture_params.extend(re.findall(r"\bTADMIX\w*", element))
+    historical_event_params = []
+    for element in get_params_from_tpl(tpl, "T_"):
+        historical_event_params.extend(re.findall(r"\bT_\w*", element))
 
-    # TODO: this part needs to be changed
-    simple_div_params, complex_div_params = get_divergence_event_params(
-        divergence_params, time_dist
+    simple_historical_params, complex_historical_params = generate_simple_complex_historical_params(
+        historical_event_params, time_dist
     )
 
-    # and this
-    simple_admix_parmas = get_admixture_event_params(admixture_params, time_dist)
-
-    simple_time_params = simple_div_params + simple_admix_parmas
-    complex_time_params = complex_div_params
-
     if param_type == "simple":
-        return simple_time_params
+        return simple_historical_params
     else:
-        return complex_time_params
+        return complex_historical_params
 
 
 def get_simple_params(

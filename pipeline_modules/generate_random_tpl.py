@@ -166,7 +166,7 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
         # add params to current event
         current_event.extend(
             [
-                f"TDIV{cur_source}{cur_sink}",
+                f"T_DIV{cur_source}{cur_sink}",
                 get_deme(cur_source),
                 get_deme(cur_sink),
                 "1",  # migrants
@@ -196,7 +196,7 @@ def get_admixture_events(ghost_present, num_pops):
 
     admixture_events = []
     current_event = [
-        f"TADMIX{source}{sink}",
+        f"T_ADMIX{source}{sink}",
         str(num_pops) if source == "G" else source,
         str(num_pops) if sink == "G" else sink,
         str(migrants),
@@ -221,11 +221,11 @@ def order_historical_events(historical_events):
     admix_events = []
 
     for event in historical_events:
-        if "TDIV" in event:
+        if "T_DIV" in event:
             # add div events to ordered bc they are already in order
             ordered_historical_events.append(event)
 
-        elif "TADMIX" in event:
+        elif "T_ADMIX" in event:
             admix_events.append(event)
         # TODO: add other events here
 
@@ -279,7 +279,7 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
     # define in nested functions
     def extract_coalescing_population(event):
         # find the coalescing pop (the source)
-        match = re.search(r"^TDIV([0-9a-zA-Z])+[0-9a-zA-Z]\s", event)
+        match = re.search(r"^T_DIV([0-9a-zA-Z])+[0-9a-zA-Z]\s", event)
         if match:
             coalescing_population = match.group(1)
             # if ghost, replace number with "G"
