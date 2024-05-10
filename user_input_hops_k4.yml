@@ -1,4 +1,5 @@
 FSC_INPUT_PREFIX: hops
+SFS_TYPE: DAF
 NUM_POPS: 4
 SAMPLE_SIZES:
   - 18
@@ -14,27 +15,11 @@ MODEL_PARAMS:
     min: 10
     max: 2e6
     type: unif
-  res_dist:
-    min: 0
-    max: 100
-    type: unif
-  admix_dist:
-    min: 0
-    max: 0.25
-    type: unif
   migration_dist:
     min: 1e-5
     max: 5
     type: logunif
   time_dist:
     type: unif
-    single_max: 3000
-    single_min: 5
-    multiple_max: 1000
-    multiple_min: 5
-    extra_max: 500
-    extra_min: 0
-  resize_dist:
-    type: unif
-    min: 1e-4
-    max: 1
+    min: 1
+    max: 5000

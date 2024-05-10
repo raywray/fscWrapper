@@ -1,25 +1,35 @@
 import random
-from math import comb
 import re
 
-def write_tpl_file(
-    file_name, num_pops, effective_pop_sizes, sample_sizes, growth_rates, migration_info, historical_events
-):
-    
-    flattened_mig_info = [migration_info[0]] + [item for sublist in migration_info[1:] for item in sublist]
 
+def write_tpl(
+    filename,
+    number_of_populations,
+    population_effective_sizes,
+    sample_sizes,
+    growth_rates,
+    migration_matrices,
+    historical_events,
+):
+    # flatten the nested list
+    flattened_migration_matrices = []
+    for matrix in migration_matrices:
+        for line in matrix:
+            flattened_migration_matrices.append(line)
     lines = [
         "//Number of population samples (demes)",
-        str(num_pops),
+        str(number_of_populations),
         "//Population effective sizes (number of genes)",
-        *effective_pop_sizes,
-        "//Sample sizes",
+        *population_effective_sizes,
+        "//Sample Sizes",
         *[str(size) for size in sample_sizes],
         "//Growth rates : negative growth implies population expansion",
         *[str(size) for size in growth_rates],
         "//Number of migration matrices : 0 implies no migration between demes",
-        *flattened_mig_info,
+        str(len(migration_matrices)),
+        *flattened_migration_matrices,
         "//historical event: time, source, sink, migrants, new deme size, growth rate, migr mat index",
+        f"{len(historical_events)} historical event",
         *historical_events,
         "//Number of independent loci [chromosome]",
         "1 0",
@@ -29,257 +39,397 @@ def write_tpl_file(
         f"FREQ 1 0 MUTRATE OUTEXP",
     ]
 
-    with open(file_name, "w") as fout:
-        fout.writelines("\n".join(lines))
+    # write to file
+    with open(filename, "w") as tpl_file:
+        tpl_file.writelines("\n".join(lines))
 
 
-# TODO potentailly add functionality for this to return + or - growth rates
-def get_growth_rates(num_pops, ghost_present):
-    shouldPopulationExpand = random.choice([True, False])
-    if shouldPopulationExpand:
-        if ghost_present:
-            growth_rates = [f"GrowthP{i}" for i in range(0, num_pops - 1)]
-            growth_rates.append(f"GrowthPG")
-        else:
-            growth_rates = [f"GrowthP{i}" for i in range(0, num_pops)]
-        return growth_rates
-    else:
-        return ["0"] * num_pops
-
-
-def random_admixture_event(num_pops, divergence_event, **kwargs):
-    source = get_sample(list(range(0, num_pops)), k=1)
-    difference = list(set(list(range(0, num_pops))) - set([source]))
-    sink = get_sample(difference, k=1)
-    output = single_admixture_event(source, sink, divergence_event, num_pops=num_pops, **kwargs)
-    output += single_admixture_event(sink, source, divergence_event, num_pops=num_pops, **kwargs)
-    return output
-
-
-def single_admixture_event(source, sink, divergence_event=None, **kwargs):
-    # single admixture event following the divergence event
-    if divergence_event is None:
-        associated_matrix = [0]
-    elif isinstance(divergence_event, (int, float)):
-        associated_matrix = [divergence_event]
-    elif "TDIV" in divergence_event:
-        associated_matrix = re.sub(r"^T.* ([0-9])$", r"\1", divergence_event)
-    else:
-        return "Error in divergence event specification"
-   
-    # Get all populations
-    populations = get_populations(**kwargs)
-    # Assign source & sink names
-    source_name = populations[source]
-    sink_name = populations[sink]
-   
-    event_name = f"TAdm_{sink_name}to{source_name}"
-    migrants = f"a_{sink_name}to{source_name}"
-    growth_rate = 0
-    output = f"{event_name} {source} {sink} {migrants} 1 {growth_rate} {associated_matrix[0]} "
-    return output
-
-
-def current_migration_matrix(num_pops, **kwargs):
-    current_matrix = ["//Migration matrix 0"]
-
-    for i in range(1, num_pops + 1):
-        matrix_row = []
-        for j in range(1, num_pops + 1):
-            if i == j:
-                matrix_at_i_j = "0.000"
-            else:
-                # Assign population names
-                populations = get_populations(num_pops=num_pops, **kwargs)
-                from_pop = populations[j - 1]
-                to_pop = populations[i - 1]
-                matrix_at_i_j = f"MIG_{from_pop}to{to_pop}"
-
-            matrix_row.append(matrix_at_i_j)
-        current_matrix.append(" ".join(matrix_row))
-    return current_matrix
-
-
-def oldest_migration_matrix(num_pops):
-    oldest_matrix = f"//Migration matrix {num_pops - 1}"
-    temp = [["0"] * num_pops for _ in range(num_pops)]
-    oldest_matrix = [oldest_matrix] + [" ".join(row) for row in temp]
-    return oldest_matrix
-
-
-def matrix_generation(num_pops, divergence_events, **kwargs):
-    subsequent_matrix = current_migration_matrix(num_pops=num_pops, **kwargs)
-    output = [subsequent_matrix]
-
-    # # loop throught all divergence events to create matrices going backward in time
-    for i in reversed(range(len(divergence_events))):
-        event = divergence_events[i]
-        subsequent_matrix_index = re.sub(r"T.* ([0-9])$", r"\1", event)
-        if int(subsequent_matrix_index) == num_pops - 1:
-            subsequent_matrix = oldest_migration_matrix(num_pops)
-        else:
-            coalescing_population = re.sub(
-                r"^TDIV_[a-zA-Z]*to([a-zA-Z]*) [0-9].*$", r"\1", event
-            )
-            # do this to a matrix without the title element
-            trimmed_matrix = subsequent_matrix.copy()
-            trimmed_matrix.pop(0)
-            pattern = r"MIG_{}to[A-Z]*|MIG_[A-Z]*to{}".format(
-                coalescing_population, coalescing_population
-            )
-            subsequent_matrix = [re.sub(pattern, "0", line) for line in trimmed_matrix]
-            title = f"//Migration matrix {subsequent_matrix_index}"
-            subsequent_matrix.insert(0, title)
-
-        output.append(subsequent_matrix)
-    return output
-
-
-def get_sample(sampling_options, **kwargs):
-    if len(sampling_options) == 1:
-        return sampling_options[0]
-    else:
-        return random.sample(sampling_options, **kwargs)[0]
-
-
-def randomize_divergence_order(
-    root_population_indices, leaf_population_indices, **kwargs
-):
-    migrants = 1 # TODO is this hard-coded? 
-    growth_rate = 0
-    output = []
-    possible_roots = root_population_indices.copy()
-    possible_leaves = leaf_population_indices.copy()
-    rev_migration_matrix_index = len(leaf_population_indices)
-
-    while len(possible_leaves) > 0:
-        root = get_sample(possible_roots, k=1)
-        offshoot = get_sample(possible_leaves, k=1)
-       
-        # Get all populations
-        populations = get_populations(**kwargs)
-        # Assign root & offshoot names
-        root_name = populations[root]
-        offshoot_name = populations[offshoot]
-
-        time = f"TDIV_{root_name}to{offshoot_name}"
-        new_deme_size = f"RES_{root_name}to{offshoot_name}"
-        output.append(
-            " ".join(
-                map(
-                    str,
-                    [
-                        time,
-                        offshoot,
-                        root,
-                        migrants,
-                        new_deme_size,
-                        growth_rate,
-                        rev_migration_matrix_index,
-                    ],
-                )
-            )
-        )
-        possible_roots.append(offshoot)
-        possible_leaves.remove(offshoot)
-        rev_migration_matrix_index -= 1
-
-    return output
-
-def get_populations(ghost_present=False, num_pops=0):
+def get_population_list(num_pops, ghost_present):
+    # this function returns the population names
     populations = []
-    population_range = num_pops -1 if ghost_present else num_pops
+    population_range = num_pops - 1 if ghost_present else num_pops
+
     for i in range(0, population_range):
         populations.append(str(i))
-   
-   # If ghost population present add G to populations list
+
     if ghost_present:
         populations.append("G")
     return populations
 
-def add_admixture_events(num_pops, historical_events, **kwargs):
-    # Randomize num of admix events (can be 0)
-    num_ways_to_choose_two_pops = comb(num_pops, 2)
-    num_admixture_events = random.sample(range(num_ways_to_choose_two_pops + 1), 1)[0]
-    
-    if num_admixture_events > 0: # if there are admix events
-        admix_after_these_divergences = [0] * num_admixture_events # initialize matrix
-        for i in range(1, num_admixture_events):
-            admixture_event = random_admixture_event(
-                num_pops,
-                admix_after_these_divergences[i],  # TODO will this always be 0?
-                **kwargs
-            )
-            # don't repeat admix events
-            while len(set(admixture_event) & set(historical_events)) > 0:
-                admixture_event = random_admixture_event(
-                    num_pops,
-                    admix_after_these_divergences[i],  # TODO will this always be 0?
-                    **kwargs
-                )
-            historical_events.append(admixture_event)
-    return historical_events
+
+def get_population_effective_sizes(number_of_populations, ghost_present):
+    return [
+        f"N_POP{i}" for i in get_population_list(number_of_populations, ghost_present)
+    ]
 
 
-def generate_random_tpl_parameters(tpl_filename="random.tpl", user_given_num_pops=0, sample_sizes=[]):
-    # Randomize adding a ghost population
-    add_ghost = random.choice([True, False])
+# TODO: delete?
+def get_random_growth_rate():
+    # according to my research, this is often 0.
+    # Generate a random number between 0 and 1
+    rand = random.random()
+    if rand < 0.9:
+        return 0  # Return 0 with a probability of 90%
+    else:
+        return random.uniform(
+            -1, 1
+        )  # Return a random value between -1 and 1 with a probability of 10%
 
-    # Determine total number of populations (given by user -- + 1 if there is a ghost pop)
-    num_pops = user_given_num_pops + 1 if add_ghost else user_given_num_pops
 
-    # Define outgroup and set as root node
-    # TODO modify this so that this is either user defined OR constant OR random (but never 0). This is what the OG code has
-    outgroup_index = num_pops - 2 if add_ghost else num_pops - 1
-    roots = [outgroup_index]
+# TODO: will need to look at this again when putting more complex events back in
+def get_sources_and_sinks(ghost_present, number_of_populations):
+    possible_sources = list(range(number_of_populations))
+    possible_sinks = list(range(number_of_populations))
 
-    # Place other populations as leaf nodes
-    leaves = list(range(outgroup_index))
+    if ghost_present:
+        possible_sources.pop(-1)
+        possible_sinks.pop(-1)
 
-    # place ghost pop (if there is one) as leaf or root
-    if add_ghost:
-        # determine if the ghost will be part of the root or leaf nodes in the tree
-        ghost_role = random.choice(["root", "leaf"])
-        if ghost_role == "root":
-            roots.append(outgroup_index + 1)
+        # determine if ghost is source or sink
+        if random.choice([True, False]):
+            possible_sources.append("G")
         else:
-            leaves.append(outgroup_index + 1)
+            possible_sinks.append("G")
 
-    # create divergence events
-    divergence_events = randomize_divergence_order(
-        roots, leaves, ghost_present=add_ghost, num_pops=num_pops
+    sources = []
+    for _ in range(random.randint(1, number_of_populations)):
+        if possible_sources == []:
+            break
+        new_source = random.choice(possible_sources)
+        sources.append(str(new_source))
+        possible_sources.remove(new_source)
+
+    sinks = []
+    for _ in range(random.randint(1, number_of_populations)):
+        if possible_sinks == []:
+            break
+        new_sink = random.choice(possible_sinks)
+        sinks.append(str(new_sink))
+        possible_sinks.remove(new_sink)
+
+    return sources, sinks
+
+
+def get_divergence_events(ghost_present, number_of_populations, pops_should_migrate):
+    # define nested functions
+    def get_deme(source_or_sink):
+        # check to see if the source ro sink is a ghost
+        if str(source_or_sink) == "G":
+            # if so, return the correct population number
+            return str(number_of_populations - 1)
+        else:
+            # if not, just return a string of the input
+            return str(source_or_sink)
+
+    # start by defining empty list
+    divergence_events = []
+    # define all populations as nodes
+    nodes = list(range(number_of_populations))
+
+    # if ghost present, will replace its index with "G"
+    if ghost_present:
+        nodes.pop(-1)
+
+    # randomly determine how many sinks
+    number_of_sinks = (
+        random.choice(range(1, number_of_populations))
+        if ghost_present
+        else random.choice(range(1, number_of_populations + 1))
     )
-    historical_events = divergence_events
+    # assign pops as sinks
+    sinks = random.sample(nodes, number_of_sinks)
+    # assign all other pops as sources (can be 0)
+    sources = [node for node in nodes if node not in sinks]
 
-    # build migration matrices prior to each divergence event
-    migration_matrix = matrix_generation(
-        num_pops, divergence_events, ghost_present=add_ghost
+    # finish adding ghost as a source or sink if ghost exists
+    if ghost_present:
+        if random.choice([True, False]):
+            sources.append("G")
+        else:
+            sinks.append("G")
+
+    # the first divergence event should be in mig mat 1
+    current_migration_matrix = 1 if pops_should_migrate else 0
+
+    # iterate as long as there are sources, or at least 2 sinks (the sinks will act as sources as soon as the sources are gone)
+    while sources or len(sinks) > 1:
+        # define empty event
+        current_event = []
+        # randomly select a source
+        cur_source = random.choice(sources) if sources else random.choice(sinks)
+        # remove the selected source from the sources list
+        sources.remove(cur_source) if sources else sinks.remove(cur_source)
+        # randomly select a sink
+        cur_sink = random.choice(sinks)
+        # randomly choose whether to resize the new deme or not (a deme size of "0" would result in extinction)
+        new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}", "1"])
+        # add params to current event
+        current_event.extend(
+            [
+                f"T_DIV{cur_source}{cur_sink}",
+                get_deme(cur_source),
+                get_deme(cur_sink),
+                "1",  # migrants
+                new_deme_size,
+                "0",  # growth rate
+                str(current_migration_matrix),
+            ]
+        )
+        # add event to divergence events
+        divergence_events.append(" ".join(current_event))
+        # only increment migration matrix index if there should be migration
+        if pops_should_migrate:
+            current_migration_matrix += 1
+
+    return divergence_events
+
+
+def get_admixture_events(ghost_present, num_pops):
+    # TODO: determine how many admixture events to add
+    # TODO: consider resizing demes during admixture
+    sources, sinks = get_sources_and_sinks(
+        ghost_present, num_pops
+    )  # TODO: look at this again
+    migrants = random.uniform(0, 1)
+
+    source = random.choice(sources)
+    sink = random.choice(sinks)
+
+    admixture_events = []
+    current_event = [
+        f"T_ADMIX{source}{sink}",
+        str(num_pops) if source == "G" else source,
+        str(num_pops) if sink == "G" else sink,
+        str(migrants),
+        "1",  # new deme size, 1 implies that the size of the sink deme remains unchanged
+        "0",  # growth rate
+        "0",  # migration matrix
+    ]
+    admixture_events.append(" ".join(current_event))
+
+    return admixture_events
+
+
+def set_migration_matrix(events, event_index):
+    current_event = events[event_index]
+    possible_mig_mat_indeces = []
+
+    previous_event = events[event_index - 1] if event_index != 0 else None
+    next_event = events[event_index +1] if event_index != len(events) - 1 else None
+
+    migration_matrix_extraction_pattern = r"(\d+)$"
+    prev_match = re.search(migration_matrix_extraction_pattern, previous_event) if previous_event else None
+    next_match = re.search(migration_matrix_extraction_pattern, next_event) if next_event else None
+    
+    possible_mig_mat_indeces = [prev_match.group(1)] if prev_match else ["0"]
+    if next_match:
+        possible_mig_mat_indeces.append(next_match.group(1))
+
+    new_migration_matrix = random.choice(possible_mig_mat_indeces)
+    updated_current_event = re.sub(migration_matrix_extraction_pattern, new_migration_matrix, current_event)
+  
+    events[event_index] = updated_current_event
+    
+    return events
+
+
+def order_historical_events(historical_events):
+    # define nested functions
+    def extract_source_sink(event):
+        match = re.search(r"T*([0-9G]{2})", event)
+        source, sink = match.group(1)
+        return source, sink
+
+    ordered_historical_events = []
+    # step 1: divide them into sections
+    admix_events = []
+
+    for event in historical_events:
+        if "T_DIV" in event:
+            # add div events to ordered bc they are already in order
+            ordered_historical_events.append(event)
+
+        elif "T_ADMIX" in event:
+            admix_events.append(event)
+        # TODO: add other events here
+
+    # step 2: put in random (but chronologically correct order)
+    # 1: firgue out where each admix should go (will need some randomness, ofc)
+    for admix_event in admix_events:
+        # extract the admix source and sink
+        admix_source, admix_sink = extract_source_sink(admix_event)
+
+        # initilalize list of possible places to insert admix event
+        possible_insertion_indeces = []
+
+        # loop through current ordered events
+        for event in ordered_historical_events:
+            event_source, event_sink = extract_source_sink(event)
+            # add the index of the event to possible indeces (when using list.insert, it will insert at that index and push everything else back)
+            possible_insertion_indeces.append(ordered_historical_events.index(event))
+
+            # check to see if either admix source or sink is dead in this event
+            # TODO: however, bottlenecks/expansions CAN happen after... so take that into account later
+            if admix_source == event_source or admix_sink == event_source:
+                break
+
+        insertion_index = random.choice(possible_insertion_indeces)
+        ordered_historical_events.insert(insertion_index, admix_event)
+        ordered_historical_events = set_migration_matrix(ordered_historical_events, insertion_index)
+
+
+    return ordered_historical_events
+
+
+def get_matrix_template(num_pops, ghost_present):
+    # this function filles out a completed migration matrix (i.e. migration between all pops)
+    matrix_label = "//Migration matrix 0"
+    matrix = [matrix_label]
+
+    for i in range(1, num_pops + 1):
+        row = []
+        for j in range(1, num_pops + 1):
+            if i == j:
+                matrix_i_j = "0.000"
+            else:
+                populations_list = get_population_list(num_pops, ghost_present)
+                from_pop = populations_list[i - 1]
+                to_pop = populations_list[j - 1]
+                matrix_i_j = f"MIG{from_pop}{to_pop}"
+            row.append(matrix_i_j)
+        matrix.append(" ".join(row))
+    return matrix
+
+
+def get_migration_matrices(num_pops, ghost_present, divergence_events):
+    # define in nested functions
+    def extract_coalescing_population(event):
+        # find the coalescing pop (the source)
+        match = re.search(r"^T_DIV([0-9a-zA-Z])+[0-9a-zA-Z]\s", event)
+        if match:
+            coalescing_population = match.group(1)
+            # if ghost, replace number with "G"
+            if ghost_present:
+                if coalescing_population == str(num_pops - 1):
+                    return "G"
+            return coalescing_population
+        else:
+            return None
+
+    # start by defining empty list
+    matrices = []
+    # the first matrix is a complete migration matrix
+    first_matrix = get_matrix_template(num_pops, ghost_present)
+    matrices.append(first_matrix)
+
+    # start with the fully filled out migration matrix
+    current_matrix = get_matrix_template(num_pops, ghost_present)
+
+    # loop through all divergence events going back in time
+    for i in range(len(divergence_events)):
+        current_event = divergence_events[i]
+        # find the migration matrix of the current event
+        current_event_matrix_index = re.search(r"\d+$", current_event).group()
+        # get the coalescing population (the source)
+        coalescing_population = extract_coalescing_population(current_event)
+        coalescing_population_in_matrix_pattern = (
+            r"MIG{}[0-9a-zA-Z]*|MIG[0-9a-zA-Z]*{}".format(
+                coalescing_population, coalescing_population
+            )
+        )
+
+        # make a temp matrix without the label
+        matrix_without_label = current_matrix[1:]
+
+        # replace any MIG param that has the coalescing population in it
+        current_matrix = [
+            re.sub(coalescing_population_in_matrix_pattern, "0.000", line)
+            for line in matrix_without_label
+        ]
+        # get updated matrix label
+        matrix_label = f"//Migration matrix {current_event_matrix_index}"
+
+        # add label to new matrix
+        current_matrix.insert(0, matrix_label)
+
+        # add to the matrices list
+        matrices.append(current_matrix)
+
+    return matrices
+
+
+def generate_random_params(
+    tpl_filename, user_given_number_of_populations, user_given_sample_sizes
+):
+    # Step 1 ✓
+    # determine if there is a ghost population
+    add_ghost = random.choice([True, False])
+    # Determine total number of populations -- either given by user or + 1 if there is a ghost pop)
+    number_of_populations = (
+        user_given_number_of_populations + 1
+        if add_ghost
+        else user_given_number_of_populations
     )
-    migration_info = [str(len(divergence_events) + 1)] + migration_matrix
 
-    '''
-    TODO -- should we do this?
-    Was going to add admixing to periods after divergence
-    num_admixture_events <- sample(0:length(divergence_events), 1)
-    But example code only shows for the current period, so I'll do that
-    '''
+    # Step 2 ✓
+    sample_sizes = (
+        user_given_sample_sizes + [0] if add_ghost else user_given_sample_sizes
+    )
 
-    # Add admixture event(s) to historical events
-    historical_events = add_admixture_events(num_pops, historical_events, ghost_present=add_ghost)
+    # Step 3 ✓
+    initial_growth_rates = [0] * number_of_populations
 
-    # Get growth rates
-    growth_rates = get_growth_rates(num_pops, ghost_present = add_ghost)
+    # Step 4 -- got something. TODO: come back and make sure this is what we want
+    # determine if they're should be migration
+    pops_should_migrate = random.choice([True, False])
+    historical_events = []
 
-    # Effective population sizes
-    Ne = [f"NPOP_{name}" for name in get_populations(ghost_present=add_ghost, num_pops=num_pops)]
+    # get divergence events
+    divergence_events = get_divergence_events(
+        ghost_present=add_ghost,
+        number_of_populations=number_of_populations,
+        pops_should_migrate=pops_should_migrate,
+    )
+    historical_events.extend(divergence_events)
 
-    return write_tpl_file(
-        file_name=tpl_filename,
-        num_pops=num_pops,
-        effective_pop_sizes=Ne,
-        sample_sizes=sample_sizes + [0] if add_ghost else sample_sizes,
-        growth_rates=growth_rates,
-        migration_info=migration_info,
-        historical_events=[f"{len(historical_events)} historical events"]
-        + historical_events[::-1],
+    # randomize adding admixture
+    """
+    TODO: should there be migration if admixture? can admixture only happen if there is migration?
+    per ChatGPT, there doesn't have to be migration for there to be admixture
+    """
+    if random.choice([True, False]):
+        admixture_events = get_admixture_events(
+            ghost_present=add_ghost, num_pops=number_of_populations
+        )
+        historical_events.extend(admixture_events)
+
+    # TODO: add bottlenecks, exponential growths.
+    # TODO: order historical events
+    historical_events = order_historical_events(
+        historical_events=historical_events,
+    )
+
+    # Step 5: build migration matrices (if there is migration) ✓
+    if pops_should_migrate:
+        migration_matrices = get_migration_matrices(
+            num_pops=number_of_populations,
+            ghost_present=add_ghost,
+            divergence_events=divergence_events,
+        )
+    else:
+        migration_matrices = []
+
+    # Step 6 ✓
+    population_effective_sizes = get_population_effective_sizes(
+        number_of_populations, add_ghost
+    )
+
+    write_tpl(
+        filename=tpl_filename,
+        number_of_populations=number_of_populations,
+        population_effective_sizes=population_effective_sizes,
+        sample_sizes=sample_sizes,
+        growth_rates=initial_growth_rates,
+        migration_matrices=migration_matrices,
+        historical_events=historical_events,
     )
