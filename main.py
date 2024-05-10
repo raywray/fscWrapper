@@ -57,8 +57,7 @@ def run_simluations(user_params, num_of_sims):
         # Run fsc TODO: change so it runs each model 100 times
         # TODO: get best l hoods from this, compare each best with each best
         # TODO: change 10000 to 1000
-        # TODO: keep the SFS type logic
-        command = f"fsc28 -t {tpl_filename} -e {est_filename} -{"d" if user_params["SFS_TYPE"] == "DAF" else "m"} -0 -C 10 -n 10000 -L 40 -s 0 -M"
+        command = f"fsc28 -t {tpl_filename} -e {est_filename} -{"d" if user_params["SFS_TYPE"] == "DAF" else "m"} -0 -C 10 -n 1000 -L 40 -s 0 -M"
         print(command) 
         execute_command(command)
 
@@ -70,7 +69,7 @@ def run(user_params):
     # Create output directory
     create_directory("output")
 
-    num_of_sims = 10  # TODO: hard-coded, but eventually 1000
+    num_of_sims = 1000  # TODO: hard-coded, but eventually 1000
 
     # run simulations
     run_simluations(user_params, num_of_sims)

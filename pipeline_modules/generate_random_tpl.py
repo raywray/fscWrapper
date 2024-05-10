@@ -393,13 +393,15 @@ def generate_random_params(
     historical_events.extend(divergence_events)
 
     # randomize adding admixture
-    # TODO: should there be migration if admixture? can admixture only happen if there is migration? 
-    if pops_should_migrate:
-        if random.choice([True, False]):
-            admixture_events = get_admixture_events(
-                ghost_present=add_ghost, num_pops=number_of_populations
-            )
-            historical_events.extend(admixture_events)
+    """
+    TODO: should there be migration if admixture? can admixture only happen if there is migration?
+    per ChatGPT, there doesn't have to be migration for there to be admixture
+    """
+    if random.choice([True, False]):
+        admixture_events = get_admixture_events(
+            ghost_present=add_ghost, num_pops=number_of_populations
+        )
+        historical_events.extend(admixture_events)
 
     # TODO: add bottlenecks, exponential growths.
     # TODO: order historical events
