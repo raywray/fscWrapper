@@ -34,7 +34,7 @@ conda info --envs | grep '^*'
 
 # Define paths to Python script and input file
 fsc_wrapper_py=/home/resplin5072/fscWrapper/main.py
-user_param_input_file=/home/resplin5072/fscWrapper/user_input_hops.yml
+user_param_input_file=/home/resplin5072/fscWrapper/user_input_hops_k4.yml
 
 # Run the Python script
 echo python3 $fsc_wrapper_py $user_param_input_file
