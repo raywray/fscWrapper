@@ -164,7 +164,7 @@ def get_simple_params(
     return simple_params
 
 
-def get_resize_params(tpl):
+def get_div_resize_params(tpl):
     complex_resize_params = []
     simple_params_to_add = []
     resize_lines_from_tpl = get_params_from_tpl(tpl, "RELANC")
@@ -176,7 +176,6 @@ def get_resize_params(tpl):
     ]
     
     if resize_lines_from_tpl:
-        simple_params_to_add = []
         # handle the first in the list
         first_resize_param = resize_params[0]
         sink_source = first_resize_param[len("RELANC"):]
@@ -198,15 +197,53 @@ def get_resize_params(tpl):
 
     return complex_resize_params, simple_params_to_add
 
+def get_bot_resize_params(tpl):
+    complex_resize_params = []
+    simple_params_to_add = []
+    resize_lines_from_tpl = get_params_from_tpl(tpl, "RESBOT")
+    resize_params = [
+        element
+        for variable in resize_lines_from_tpl
+        for element in variable.split()
+        if element.startswith("RESBOT")
+    ]
+    bot_end_resize_params = [param for param in resize_params if param.startswith("RESBOTEND")]
+    bot_start_resize_params = [param for param in resize_params if param not in bot_end_resize_params]
+
+    if resize_lines_from_tpl:
+        for start_param in bot_start_resize_params:
+            bot_pop = start_param[len("RESBOT"): -1]
+            complex_resize_params.append(
+                f"0 {start_param} = N_BOT{bot_pop}/N_CUR{bot_pop} hide"
+            )
+            simple_params_to_add.append(f"N_BOT{bot_pop}")
+            simple_params_to_add.append(f"N_CUR{bot_pop}")
+        for end_param in bot_end_resize_params:
+            bot_pop = end_param[len("RESBOTEND"): -1]
+            complex_resize_params.append(
+                f"0 {end_param} = N_ANC{bot_pop}/N_BOT{bot_pop}"
+            )
+            simple_params_to_add.append(f"N_ANC{bot_pop}")
+
+
+    return complex_resize_params, simple_params_to_add
+
+
 
 def get_complex_params(tpl, time_dist):
     complex_params = []
 
     # get resize params
-    complex_resize_params, simple_params_to_add = get_resize_params(tpl)
+    complex_resize_params, simple_params_to_add = get_div_resize_params(tpl)
+
+    # get bottleneck resize params
+    complex_bot_resize_params, simple_bot_params_to_add = get_bot_resize_params(tpl)
+    if simple_bot_params_to_add: simple_params_to_add.extend(simple_bot_params_to_add)
     # need to add ancsize to simple params
     if complex_resize_params:
         complex_params.extend(complex_resize_params)
+    if complex_bot_resize_params:
+        complex_params.extend(complex_bot_resize_params)
 
     # get complex time params
     complex_params.extend(get_historical_event_params(tpl, time_dist, "complex"))

@@ -256,27 +256,37 @@ def order_historical_events(historical_events):
             # loop through current ordered events
             for event in current_ordered_events:
                 event_source, event_sink = extract_source_sink(event)
+
                 # add the index of the event to possible indeces
                 possible_insertion_indeces.append(current_ordered_events.index(event))
 
                 # check to see if either cur event sink or source is dead
-                if cur_source == event_source or cur_sink == event_sink:
+                if cur_source == event_source or cur_sink == event_source:
                     break
-            
+
             insertion_index = random.choice(possible_insertion_indeces)
             newly_ordered_events.insert(insertion_index, cur_event)
-            newly_ordered_events = set_migration_matrix(newly_ordered_events, insertion_index)
-        
+            newly_ordered_events = set_migration_matrix(
+                newly_ordered_events, insertion_index
+            )
+
         return newly_ordered_events
+
     def add_end_events(current_ordered_events, event_type):
         robust_ordered_events = current_ordered_events.copy()
         for event in current_ordered_events:
             if event.startswith(f"T_{event_type}"):
                 event_parts = event.split()
-                end_event = event_parts[0].replace(f"T_{event_type}", f"T_{event_type}END") + " " + " ".join(event_parts[1:])
-                end_resize = event_parts[4].replace(f"RES{event_type}", f"RES{event_type}END")
+                end_event = (
+                    event_parts[0].replace(f"T_{event_type}", f"T_{event_type}END")
+                    + " "
+                    + " ".join(event_parts[1:])
+                )
+                end_resize = event_parts[4].replace(
+                    f"RES{event_type}", f"RES{event_type}END"
+                )
                 end_event = end_event.replace(event_parts[4], end_resize)
-                
+
                 event_index = robust_ordered_events.index(event)
                 robust_ordered_events.insert(event_index + 1, end_event)
         return robust_ordered_events
@@ -298,8 +308,9 @@ def order_historical_events(historical_events):
 
     # step 2: put in random (but chronologically correct order)
     ordered_historical_events = place_events(ordered_historical_events, admix_events)
-    ordered_historical_events = place_events(ordered_historical_events, bot_events)
-    ordered_historical_events = add_end_events(ordered_historical_events, "BOT")
+    if bot_events:
+        ordered_historical_events = place_events(ordered_historical_events, bot_events)
+        ordered_historical_events = add_end_events(ordered_historical_events, "BOT")
 
     return ordered_historical_events
 

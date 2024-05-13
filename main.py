@@ -59,7 +59,7 @@ def run_simluations(user_params, num_of_sims):
         # TODO: change 10000 to 1000
         command = f"fsc28 -t {tpl_filename} -e {est_filename} -{"d" if user_params["SFS_TYPE"] == "DAF" else "m"} -0 -C 10 -n 1000 -L 40 -s 0 -M"
         print(command) 
-        # execute_command(command)
+        execute_command(command)
 
         # go back to root directory
         os.chdir("../..")
