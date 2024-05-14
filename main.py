@@ -17,26 +17,27 @@ def create_directory(dir_path):
     os.makedirs(dir_path, exist_ok=True)
 
 
-def run_setup(cur_run):
+def run_setup(cur_run, output_dir, project_path):
     # add fsc executable
-    use_fsc.add_fsc_to_path()
+    use_fsc.add_fsc_to_path(project_path)
     
     # make directory
-    output_folder_name = f"output/run_{cur_run}"
+    output_folder_name = f"{output_dir}/run_{cur_run}"
     create_directory(output_folder_name)
 
+
     # copy SFS into new dir
-    os.system(f"cp {user_params["FSC_INPUT_PREFIX"]}* {output_folder_name}")
+    os.system(f"cp {project_path}{user_params["FSC_INPUT_PREFIX"]}* {output_folder_name}")
 
     # move into new dir
     os.chdir(output_folder_name)
 
 
-def run_simluations(user_params, num_of_sims):
+def run_simluations(user_params, num_of_sims, output_dir, project_path):
     # run x number of fsc simulations
     for i in range(1, num_of_sims + 1):
         # prepare folder for run
-        run_setup(i)
+        run_setup(i, output_dir, project_path)
 
         # Create filenames
         tpl_filename = f"{user_params["FSC_INPUT_PREFIX"]}.tpl"
@@ -65,17 +66,17 @@ def run_simluations(user_params, num_of_sims):
         os.chdir("../..")
 
 
-def run(user_params):
+def run(user_params, output_dir="output", project_path=""):
     # Create output directory
-    create_directory("output")
+    create_directory(output_dir)
 
-    num_of_sims = 1000  # TODO: hard-coded, but eventually 1000
+    num_of_sims = 1  # TODO: hard-coded, but eventually 1000
 
     # run simulations
-    run_simluations(user_params, num_of_sims)
+    run_simluations(user_params, num_of_sims, output_dir, project_path)
 
     # find the best fit run
-    best_fit_run = determine_best_fit_model.get_best_lhoods(num_of_sims, user_params["FSC_INPUT_PREFIX"])
+    best_fit_run = determine_best_fit_model.get_best_lhoods(num_of_sims, user_params["FSC_INPUT_PREFIX"], output_dir)
     print("best fit run: run", best_fit_run)
 
 
@@ -85,8 +86,10 @@ if __name__ == "__main__":
         print("Usage: python script.py <parameter>")
         sys.exit(1)  
     user_input_yaml_filepath = sys.argv[1]
+    output_dir = sys.argv[2]
+    project_path = sys.argv[3]
 
     # parse yaml
     user_params = get_user_params_from_yaml.read_yaml_file(user_input_yaml_filepath)
     # run program
-    run(user_params)
+    run(user_params, output_dir, project_path)
