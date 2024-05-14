@@ -21,7 +21,7 @@ echo " "
 # Activate the Conda environment
 conda init bash
 source /home/resplin5072/bashrc-miniconda3
-conda activate fscwrapper_test_env
+conda activate fsc_wrapper_env
 
 # Change to the working directory
 cd $PBS_O_WORKDIR
