@@ -82,6 +82,7 @@ def run(user_params, output_dir="output", project_path=""):
 
 if __name__ == "__main__":
     # get user params
+    # example call: python3 main.py output_directory/ fscWrapper_project_path/
     if len(sys.argv) < 2:
         print("Usage: python script.py <parameter>")
         sys.exit(1)  

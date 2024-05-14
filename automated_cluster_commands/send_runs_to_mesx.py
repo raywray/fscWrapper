@@ -12,7 +12,7 @@ def add_params_to_run_template():
     project_path = "/home/resplin5072/fscWrapper/"
     simulation_subfolder = "fsc_output"
     me_at_remote_URL = "resplin5072@mesx.sdsu.edu"
-    template_sh_file = "/home/raya/Documents/Projects/fscWrapper/mesx_commands/qsub-template.sh"
+    template_sh_file = "/home/raya/Documents/Projects/fscWrapper/automated_cluster_commands/qsub-template.sh"
     local_out_dir = "/home/raya/Documents/Projects/fscWrapper/sim_output"
     commands_folder_mesx = "/home/resplin5072/cluster_commands"
     out_folder_on_mesx = "/home/resplin5072/output"
@@ -29,7 +29,7 @@ def add_params_to_run_template():
     if not os.path.exists(origin_folder):
         os.makedirs(origin_folder)
 
-    number_of_sims = 1 # TODO: hardcoded
+    number_of_sims = 1000 # TODO: hardcoded
 
     for i in range(number_of_sims):
         job_name = f"hops_run_{i+1}"
@@ -50,15 +50,11 @@ def add_params_to_run_template():
     print(" ".join(copy_cluster_cmds))
     out_string, error_string = run_and_wait_on_process(copy_cluster_cmds, local_out_dir)
 
-    # make output dir TODO: this doesn't work, so do it manually I guess
+    # make output dir 
     make_out_dir_cmd = [
-        "ssh", 
-        me_at_remote_URL, 
-        ". /home/resplin5072/.bash_profile;",
         "mkdir " + fsc_output_path_mesx
     ]
-    print(" ".join(make_out_dir_cmd))
-    out_string, error_string = run_and_wait_on_process(make_out_dir_cmd, local_out_dir)
+    out_string, error_string = send_cmd_to_cluster(me_at_remote_URL, make_out_dir_cmd, local_out_dir)
 
     cmds_to_qsub_via_ssh = []
     for cmd in cluster_cmds:
@@ -67,14 +63,10 @@ def add_params_to_run_template():
 
     # submit all qsub commands
     full_cmd_with_all_qsubs = [
-        "ssh",
-        me_at_remote_URL,
-        ". /home/resplin5072/.bash_profile;",
         "cd " + script_destination_folder_mesx + ";",
     ] + cmds_to_qsub_via_ssh
-    print(" ".join(full_cmd_with_all_qsubs))
-    out_string, error_string = run_and_wait_with_retry(full_cmd_with_all_qsubs, local_out_dir, "Connection reset by peer", 3, 10)
-
+    out_string, error_string = send_cmd_to_cluster(me_at_remote_URL, full_cmd_with_all_qsubs, local_out_dir, retry=True)
+    
     return
 
 
@@ -96,7 +88,6 @@ def write_sh_file(template_file, out_dir, new_file_name, replacements):
             lines_to_write.append(new_line)
             if not line:
                 break
-
     with open(new_sh_file, "w") as f:
         for line in lines_to_write:
             f.writelines(line)
@@ -130,21 +121,26 @@ def run_and_wait_on_process(cmd, folder):
     error_string = process_completed_result.stderr.decode()
     out_string = process_completed_result.stdout.decode()
 
-    # https://stackoverflow.com/questions/287871/how-do-i-print-colored-text-to-the-terminal
-    # colored_error_string = '\x1b[6;30;42m' + "ERROR:  " + error_string + '\x1b[0m'
     colored_error_string = "\033[93m" + "ERROR:  " + error_string + "\x1b[0m"
 
     if len(error_string) > 0:
         log.write_to_log(colored_error_string)
-
-    # print(program+" stderr:\t" + error_string)
-    # print(program+" stdout:\t" + out_string)
 
     with open(os.path.join(folder, program + "_stderr.txt"), "w") as f:
         f.writelines(error_string)
     with open(os.path.join(folder, program + "_stdout.txt"), "w") as f:
         f.writelines(out_string)
 
+    return out_string, error_string
+
+def send_cmd_to_cluster(remote_url,cmd_list, out_dir, excuse="Connection reset by peer", num_re_all=3, sleepy_time=10, retry=False):
+    cmds_to_append = ["ssh", remote_url, ". /home/resplin5072/.bash_profile;"]
+    cmds_to_send = cmds_to_append + cmd_list
+    print(" ".join(cmds_to_send))
+    if retry:
+        out_string, error_string = run_and_wait_with_retry(cmds_to_send, out_dir, excuse, num_re_all, sleepy_time)
+    else:
+        out_string, error_string = run_and_wait_on_process(cmds_to_send, out_dir)
     return out_string, error_string
 
 add_params_to_run_template()
