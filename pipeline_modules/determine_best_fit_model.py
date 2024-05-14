@@ -21,8 +21,8 @@ def find_lhoods(num_of_sims, prefix):
     return sorted_results
 
 
-def get_best_fit_model(results):
-    with open("best_lhood_results.txt", "w") as results_file:
+def get_best_fit_model(results, output_dir):
+    with open(f"{output_dir}/best_lhood_results.txt", "w") as results_file:
         for result in results:
             results_file.write(f"{result[0]} {result[1]}\n")
     if not results:
@@ -32,8 +32,8 @@ def get_best_fit_model(results):
     return best_fit_run
 
 
-def get_best_lhoods(num_of_sims, input_prefix):
+def get_best_lhoods(num_of_sims, input_prefix, output_dir):
     best_lhood_resuls = find_lhoods(num_of_sims, input_prefix)
-    best_fit_run = get_best_fit_model(best_lhood_resuls)
+    best_fit_run = get_best_fit_model(best_lhood_resuls, output_dir)
 
     return best_fit_run
