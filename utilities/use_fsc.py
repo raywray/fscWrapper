@@ -1,8 +1,7 @@
 import os
 
-def add_fsc_to_path():
-    current_working_directory = os.getcwd()
-    fsc_path = f"{current_working_directory}/fsc28_linux64/"
+def add_fsc_to_path(project_path):
+    fsc_path = f"{project_path}fsc28_linux64/"
     
     # Get the current PATH
     path = os.getenv("PATH")
