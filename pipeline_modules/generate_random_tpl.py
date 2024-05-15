@@ -189,11 +189,17 @@ def get_admixture_events(ghost_present, num_pops):
     # TODO: consider resizing demes during admixture
     sources, sinks = get_sources_and_sinks(
         ghost_present, num_pops
-    )  # TODO: look at this again
-    migrants = random.uniform(0, 1)
+    )  # TODO: look at this again        
 
-    source = random.choice(sources)
-    sink = random.choice(sinks)
+    migrants = random.uniform(0, 1)
+    
+    # make sure that there is no admixture with itself
+    unique_source_and_sink = False
+    while not unique_source_and_sink:
+        source = random.choice(sources)
+        sink = random.choice(sinks)
+        
+        if source != sink: unique_source_and_sink = True
 
     admixture_events = []
     current_event = [
@@ -331,7 +337,8 @@ def get_historical_events(ghost_present, number_of_populations, pops_should_migr
     TODO: should there be migration if admixture? can admixture only happen if there is migration?
     per ChatGPT, there doesn't have to be migration for there to be admixture
     """
-    if random.choice([True, False]):
+    # if random.choice([True, False]):
+    if random.choice([True, True]): # TODO: delete
         admixture_events = get_admixture_events(ghost_present, number_of_populations)
         historical_events.extend(admixture_events)
 
