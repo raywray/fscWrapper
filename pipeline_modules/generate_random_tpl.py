@@ -337,8 +337,7 @@ def get_historical_events(ghost_present, number_of_populations, pops_should_migr
     TODO: should there be migration if admixture? can admixture only happen if there is migration?
     per ChatGPT, there doesn't have to be migration for there to be admixture
     """
-    # if random.choice([True, False]):
-    if random.choice([True, True]): # TODO: delete
+    if random.choice([True, False]):
         admixture_events = get_admixture_events(ghost_present, number_of_populations)
         historical_events.extend(admixture_events)
 
@@ -442,7 +441,7 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
         # get the coalescing population (the source)
         coalescing_population = extract_coalescing_population(current_event)
         coalescing_population_in_matrix_pattern = (
-            r"MIG{}[0-9a-zA-Z]*|MIG[0-9a-zA-Z$]*{}".format(
+            r"MIG{}[0-9a-zA-Z$]*|MIG[0-9a-zA-Z]*{}\$".format(
                 coalescing_population, coalescing_population
             )
         )
@@ -450,7 +449,7 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
         # make a temp matrix without the label
         matrix_without_label = current_matrix[1:]
 
-        # replace any MIG param that has the coalescing population in it
+        # replace any MIG param that has the coalescing population in i
         current_matrix = [
             re.sub(coalescing_population_in_matrix_pattern, "0.000", line)
             for line in matrix_without_label
