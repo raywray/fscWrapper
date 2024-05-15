@@ -30,7 +30,7 @@ def get_params_from_tpl(tpl, search_params):
 
 def get_mutation_rate_params(mutation_rate_dist):
     return [
-        "0 MUTRATE {} {} {} output".format(
+        "0 MUTRATE$ {} {} {} output".format(
             mutation_rate_dist["type"],
             mutation_rate_dist["min"],
             mutation_rate_dist["max"],
@@ -64,7 +64,7 @@ def get_migration_params(tpl, migration_dist):
     
     # get the migration parameters from tpl
     mig_params_from_tpl = get_params_from_tpl(tpl, "MIG")
-    migration_pattern = r"\bMIG\w*"
+    migration_pattern = r"\bMIG\w\w\$*"
 
     unique_migration_params = find_unique_params(mig_params_from_tpl, migration_pattern)
     migration_params = [
@@ -116,7 +116,7 @@ def generate_simple_complex_historical_params(historical_params, time_dist):
 
         for i in range(1, len(historical_params)):
             # Define the space between each event
-            between_event_param = f"T_{i}_{i+1}"
+            between_event_param = f"T_{i}_{i+1}$"
             add_event_to_param(
                 simple_params,
                 between_event_param,
@@ -134,7 +134,7 @@ def get_historical_event_params(tpl, time_dist, param_type):
 
     historical_event_params = []
     for element in get_params_from_tpl(tpl, "T_"):
-        historical_event_params.extend(re.findall(r"\bT_\w*", element))
+        historical_event_params.extend(re.findall(r"\bT_\w*\$*", element))
 
     simple_historical_params, complex_historical_params = generate_simple_complex_historical_params(
         historical_event_params, time_dist
@@ -178,21 +178,21 @@ def get_div_resize_params(tpl):
     if resize_lines_from_tpl:
         # handle the first in the list
         first_resize_param = resize_params[0]
-        sink_source = first_resize_param[len("RELANC"):]
+        sink_source = first_resize_param[len("RELANC"):first_resize_param.find("$")]
         complex_resize_params.append(
-            f"0 {first_resize_param} = N_ANCALL/N_ANC{sink_source} hide"
+            f"0 {first_resize_param} = N_ANCALL$/N_ANC{sink_source}$ hide"
         )
         resize_params.remove(first_resize_param)
-        simple_params_to_add.append("N_ANCALL")
-        simple_params_to_add.append(f"N_ANC{sink_source}")
+        simple_params_to_add.append("N_ANCALL$")
+        simple_params_to_add.append(f"N_ANC{sink_source}$")
         # handle rest of the names
         for param in resize_params:
-            sink_source = param[len("RELANC"):]
+            sink_source = param[len("RELANC"):param.find("$")]
             
             complex_resize_params.append(
-                f"0 {param} = N_ANC{sink_source[0]}{sink_source[1]}/N_POP{sink_source[1]} hide"
+                f"0 {param} = N_ANC{sink_source[0]}{sink_source[1]}$/N_POP{sink_source[1]}$ hide"
             )
-            simple_params_to_add.append(f"N_ANC{sink_source[0]}{sink_source[1]}")
+            simple_params_to_add.append(f"N_ANC{sink_source[0]}{sink_source[1]}$")
         
 
     return complex_resize_params, simple_params_to_add
@@ -214,16 +214,16 @@ def get_bot_resize_params(tpl):
         for start_param in bot_start_resize_params:
             bot_pop = start_param[len("RESBOT"): -1]
             complex_resize_params.append(
-                f"0 {start_param} = N_BOT{bot_pop}/N_CUR{bot_pop} hide"
+                f"0 {start_param} = N_BOT{bot_pop}$/N_CUR{bot_pop}$ hide"
             )
-            simple_params_to_add.append(f"N_BOT{bot_pop}")
-            simple_params_to_add.append(f"N_CUR{bot_pop}")
+            simple_params_to_add.append(f"N_BOT{bot_pop}$")
+            simple_params_to_add.append(f"N_CUR{bot_pop}$")
         for end_param in bot_end_resize_params:
             bot_pop = end_param[len("RESBOTEND"): -1]
             complex_resize_params.append(
-                f"0 {end_param} = N_ANC{bot_pop}/N_BOT{bot_pop}"
+                f"0 {end_param} = N_ANC{bot_pop}$/N_BOT{bot_pop}$ hide"
             )
-            simple_params_to_add.append(f"N_ANC{bot_pop}")
+            simple_params_to_add.append(f"N_ANC{bot_pop}$")
 
 
     return complex_resize_params, simple_params_to_add

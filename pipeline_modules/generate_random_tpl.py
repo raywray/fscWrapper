@@ -36,7 +36,7 @@ def write_tpl(
         "//Per chromosome: Number of contiguous linkage Block: a block is a set of contiguous loci",
         "1",
         "//per Block:data type, number of loci, per gen recomb and mut rates",
-        f"FREQ 1 0 MUTRATE OUTEXP",
+        f"FREQ 1 0 MUTRATE$ OUTEXP",
     ]
 
     # write to file
@@ -59,7 +59,7 @@ def get_population_list(num_pops, ghost_present):
 
 def get_population_effective_sizes(number_of_populations, ghost_present):
     return [
-        f"N_POP{i}" for i in get_population_list(number_of_populations, ghost_present)
+        f"N_POP{i}$" for i in get_population_list(number_of_populations, ghost_present)
     ]
 
 
@@ -162,11 +162,11 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
         # randomly select a sink
         cur_sink = random.choice(sinks)
         # randomly choose whether to resize the new deme or not (a deme size of "0" would result in extinction)
-        new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}", "1"])
+        new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}$", "1"])
         # add params to current event
         current_event.extend(
             [
-                f"T_DIV{cur_source}{cur_sink}",
+                f"T_DIV{cur_source}{cur_sink}$",
                 get_deme(cur_source),
                 get_deme(cur_sink),
                 "1",  # migrants
@@ -197,7 +197,7 @@ def get_admixture_events(ghost_present, num_pops):
 
     admixture_events = []
     current_event = [
-        f"T_ADMIX{source}{sink}",
+        f"T_ADMIX{source}{sink}$",
         str(num_pops) if source == "G" else source,
         str(num_pops) if sink == "G" else sink,
         str(migrants),
@@ -223,11 +223,11 @@ def get_bottleneck_events(num_pops, ghost_present):
 
     # define bottleneck start
     current_event = [
-        f"T_BOT{source}{sink}",
+        f"T_BOT{source}{sink}$",
         str(num_pops) if source == "G" else str(source),
         str(num_pops) if sink == "G" else str(sink),
         "0",  # migrants
-        f"RESBOT{source}{sink}",  # new deme size
+        f"RESBOT{source}{sink}$",  # new deme size
         "0",  # growth rate
         "0",  # migration matrix
     ]
@@ -397,7 +397,7 @@ def get_matrix_template(num_pops, ghost_present):
                 populations_list = get_population_list(num_pops, ghost_present)
                 from_pop = populations_list[i - 1]
                 to_pop = populations_list[j - 1]
-                matrix_i_j = f"MIG{from_pop}{to_pop}"
+                matrix_i_j = f"MIG{from_pop}{to_pop}$"
             row.append(matrix_i_j)
         matrix.append(" ".join(row))
     return matrix
@@ -407,7 +407,7 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
     # define in nested functions
     def extract_coalescing_population(event):
         # find the coalescing pop (the source)
-        match = re.search(r"^T_DIV([0-9a-zA-Z])+[0-9a-zA-Z]\s", event)
+        match = re.search(r"^T_DIV([0-9a-zA-Z])+[0-9a-zA-Z]", event)
         if match:
             coalescing_population = match.group(1)
             # if ghost, replace number with "G"
@@ -435,7 +435,7 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
         # get the coalescing population (the source)
         coalescing_population = extract_coalescing_population(current_event)
         coalescing_population_in_matrix_pattern = (
-            r"MIG{}[0-9a-zA-Z]*|MIG[0-9a-zA-Z]*{}".format(
+            r"MIG{}[0-9a-zA-Z]*|MIG[0-9a-zA-Z$]*{}".format(
                 coalescing_population, coalescing_population
             )
         )
