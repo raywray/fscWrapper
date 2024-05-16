@@ -36,7 +36,7 @@ def write_tpl(
         "//Per chromosome: Number of contiguous linkage Block: a block is a set of contiguous loci",
         "1",
         "//per Block:data type, number of loci, per gen recomb and mut rates",
-        f"FREQ 1 0 MUTRATE OUTEXP",
+        f"FREQ 1 0 MUTRATE$ OUTEXP",
     ]
 
     # write to file
@@ -59,7 +59,7 @@ def get_population_list(num_pops, ghost_present):
 
 def get_population_effective_sizes(number_of_populations, ghost_present):
     return [
-        f"N_POP{i}" for i in get_population_list(number_of_populations, ghost_present)
+        f"N_POP{i}$" for i in get_population_list(number_of_populations, ghost_present)
     ]
 
 
@@ -162,11 +162,11 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
         # randomly select a sink
         cur_sink = random.choice(sinks)
         # randomly choose whether to resize the new deme or not (a deme size of "0" would result in extinction)
-        new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}", "1"])
+        new_deme_size = random.choice([f"RELANC{cur_source}{cur_sink}$", "1"])
         # add params to current event
         current_event.extend(
             [
-                f"T_DIV{cur_source}{cur_sink}",
+                f"T_DIV{cur_source}{cur_sink}$",
                 get_deme(cur_source),
                 get_deme(cur_sink),
                 "1",  # migrants
@@ -189,15 +189,21 @@ def get_admixture_events(ghost_present, num_pops):
     # TODO: consider resizing demes during admixture
     sources, sinks = get_sources_and_sinks(
         ghost_present, num_pops
-    )  # TODO: look at this again
-    migrants = random.uniform(0, 1)
+    )  # TODO: look at this again        
 
-    source = random.choice(sources)
-    sink = random.choice(sinks)
+    migrants = random.uniform(0, 1)
+    
+    # make sure that there is no admixture with itself
+    unique_source_and_sink = False
+    while not unique_source_and_sink:
+        source = random.choice(sources)
+        sink = random.choice(sinks)
+        
+        if source != sink: unique_source_and_sink = True
 
     admixture_events = []
     current_event = [
-        f"T_ADMIX{source}{sink}",
+        f"T_ADMIX{source}{sink}$",
         str(num_pops) if source == "G" else source,
         str(num_pops) if sink == "G" else sink,
         str(migrants),
@@ -210,27 +216,31 @@ def get_admixture_events(ghost_present, num_pops):
     return admixture_events
 
 
-def set_migration_matrix(events, event_index):
-    current_event = events[event_index]
-    possible_mig_mat_indeces = []
+def get_bottleneck_events(num_pops, ghost_present):
+    # TODO: determine how many bottleneck events
 
-    previous_event = events[event_index - 1] if event_index != 0 else None
-    next_event = events[event_index +1] if event_index != len(events) - 1 else None
+    bottleneck_events = []
 
-    migration_matrix_extraction_pattern = r"(\d+)$"
-    prev_match = re.search(migration_matrix_extraction_pattern, previous_event) if previous_event else None
-    next_match = re.search(migration_matrix_extraction_pattern, next_event) if next_event else None
-    
-    possible_mig_mat_indeces = [prev_match.group(1)] if prev_match else ["0"]
-    if next_match:
-        possible_mig_mat_indeces.append(next_match.group(1))
+    # find the pop to bottleneck
+    source = sink = random.choice(list(range(num_pops)))
+    if ghost_present:
+        if source or sink == str(num_pops - 1):
+            source = sink = "G"
 
-    new_migration_matrix = random.choice(possible_mig_mat_indeces)
-    updated_current_event = re.sub(migration_matrix_extraction_pattern, new_migration_matrix, current_event)
-  
-    events[event_index] = updated_current_event
-    
-    return events
+    # define bottleneck start
+    current_event = [
+        f"T_BOT{source}{sink}$",
+        str(num_pops) if source == "G" else str(source),
+        str(num_pops) if sink == "G" else str(sink),
+        "0",  # migrants
+        f"RESBOT{source}{sink}$",  # new deme size
+        "0",  # growth rate
+        "0",  # migration matrix
+    ]
+
+    bottleneck_events.append(" ".join(current_event))
+
+    return bottleneck_events
 
 
 def order_historical_events(historical_events):
@@ -240,45 +250,143 @@ def order_historical_events(historical_events):
         source, sink = match.group(1)
         return source, sink
 
+    def place_events(current_ordered_events, events_to_add):
+        newly_ordered_events = current_ordered_events.copy()
+        for cur_event in events_to_add:
+            # extract the current source and sink
+            cur_source, cur_sink = extract_source_sink(cur_event)
+
+            # initilalize list of possible places to insert admix event
+            possible_insertion_indeces = []
+
+            # loop through current ordered events
+            for event in current_ordered_events:
+                event_source, event_sink = extract_source_sink(event)
+
+                # add the index of the event to possible indeces
+                possible_insertion_indeces.append(current_ordered_events.index(event))
+
+                # check to see if either cur event sink or source is dead
+                if cur_source == event_source or cur_sink == event_source:
+                    break
+
+            insertion_index = random.choice(possible_insertion_indeces)
+            newly_ordered_events.insert(insertion_index, cur_event)
+            newly_ordered_events = set_migration_matrix(
+                newly_ordered_events, insertion_index
+            )
+
+        return newly_ordered_events
+
+    def add_end_events(current_ordered_events, event_type):
+        robust_ordered_events = current_ordered_events.copy()
+        for event in current_ordered_events:
+            if event.startswith(f"T_{event_type}"):
+                event_parts = event.split()
+                end_event = (
+                    event_parts[0].replace(f"T_{event_type}", f"T_{event_type}END")
+                    + " "
+                    + " ".join(event_parts[1:])
+                )
+                end_resize = event_parts[4].replace(
+                    f"RES{event_type}", f"RES{event_type}END"
+                )
+                end_event = end_event.replace(event_parts[4], end_resize)
+
+                event_index = robust_ordered_events.index(event)
+                robust_ordered_events.insert(event_index + 1, end_event)
+        return robust_ordered_events
+
     ordered_historical_events = []
     # step 1: divide them into sections
     admix_events = []
+    bot_events = []
 
     for event in historical_events:
         if "T_DIV" in event:
             # add div events to ordered bc they are already in order
             ordered_historical_events.append(event)
-
         elif "T_ADMIX" in event:
             admix_events.append(event)
+        elif "T_BOT" in event:
+            bot_events.append(event)
         # TODO: add other events here
 
     # step 2: put in random (but chronologically correct order)
-    # 1: firgue out where each admix should go (will need some randomness, ofc)
-    for admix_event in admix_events:
-        # extract the admix source and sink
-        admix_source, admix_sink = extract_source_sink(admix_event)
-
-        # initilalize list of possible places to insert admix event
-        possible_insertion_indeces = []
-
-        # loop through current ordered events
-        for event in ordered_historical_events:
-            event_source, event_sink = extract_source_sink(event)
-            # add the index of the event to possible indeces (when using list.insert, it will insert at that index and push everything else back)
-            possible_insertion_indeces.append(ordered_historical_events.index(event))
-
-            # check to see if either admix source or sink is dead in this event
-            # TODO: however, bottlenecks/expansions CAN happen after... so take that into account later
-            if admix_source == event_source or admix_sink == event_source:
-                break
-
-        insertion_index = random.choice(possible_insertion_indeces)
-        ordered_historical_events.insert(insertion_index, admix_event)
-        ordered_historical_events = set_migration_matrix(ordered_historical_events, insertion_index)
-
+    ordered_historical_events = place_events(ordered_historical_events, admix_events)
+    if bot_events:
+        ordered_historical_events = place_events(ordered_historical_events, bot_events)
+        ordered_historical_events = add_end_events(ordered_historical_events, "BOT")
 
     return ordered_historical_events
+
+
+def get_historical_events(ghost_present, number_of_populations, pops_should_migrate):
+    historical_events = []
+
+    # get divergence events
+    divergence_events = get_divergence_events(
+        ghost_present=ghost_present,
+        number_of_populations=number_of_populations,
+        pops_should_migrate=pops_should_migrate,
+    )
+    historical_events.extend(divergence_events)
+
+    # randomize adding admixture
+    """
+    TODO: should there be migration if admixture? can admixture only happen if there is migration?
+    per ChatGPT, there doesn't have to be migration for there to be admixture
+    """
+    if random.choice([True, False]):
+        admixture_events = get_admixture_events(ghost_present, number_of_populations)
+        historical_events.extend(admixture_events)
+
+    # randomize adding bottlenecks
+    if random.choice([True, False]):
+        bottleneck_events = get_bottleneck_events(number_of_populations, ghost_present)
+        historical_events.extend(bottleneck_events)
+
+    # TODO: add exponential growths.
+
+    # place historical events in chronological order
+    historical_events = order_historical_events(
+        historical_events=historical_events,
+    )
+
+    return historical_events, divergence_events
+
+
+def set_migration_matrix(events, event_index):
+    current_event = events[event_index]
+    possible_mig_mat_indeces = []
+
+    previous_event = events[event_index - 1] if event_index != 0 else None
+    next_event = events[event_index + 1] if event_index != len(events) - 1 else None
+
+    migration_matrix_extraction_pattern = r"(\d+)$"
+    prev_match = (
+        re.search(migration_matrix_extraction_pattern, previous_event)
+        if previous_event
+        else None
+    )
+    next_match = (
+        re.search(migration_matrix_extraction_pattern, next_event)
+        if next_event
+        else None
+    )
+
+    possible_mig_mat_indeces = [prev_match.group(1)] if prev_match else ["0"]
+    if next_match:
+        possible_mig_mat_indeces.append(next_match.group(1))
+
+    new_migration_matrix = random.choice(possible_mig_mat_indeces)
+    updated_current_event = re.sub(
+        migration_matrix_extraction_pattern, new_migration_matrix, current_event
+    )
+
+    events[event_index] = updated_current_event
+
+    return events
 
 
 def get_matrix_template(num_pops, ghost_present):
@@ -295,7 +403,7 @@ def get_matrix_template(num_pops, ghost_present):
                 populations_list = get_population_list(num_pops, ghost_present)
                 from_pop = populations_list[i - 1]
                 to_pop = populations_list[j - 1]
-                matrix_i_j = f"MIG{from_pop}{to_pop}"
+                matrix_i_j = f"MIG{from_pop}{to_pop}$"
             row.append(matrix_i_j)
         matrix.append(" ".join(row))
     return matrix
@@ -305,7 +413,7 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
     # define in nested functions
     def extract_coalescing_population(event):
         # find the coalescing pop (the source)
-        match = re.search(r"^T_DIV([0-9a-zA-Z])+[0-9a-zA-Z]\s", event)
+        match = re.search(r"^T_DIV([0-9a-zA-Z])+[0-9a-zA-Z]", event)
         if match:
             coalescing_population = match.group(1)
             # if ghost, replace number with "G"
@@ -333,7 +441,7 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
         # get the coalescing population (the source)
         coalescing_population = extract_coalescing_population(current_event)
         coalescing_population_in_matrix_pattern = (
-            r"MIG{}[0-9a-zA-Z]*|MIG[0-9a-zA-Z]*{}".format(
+            r"MIG{}[0-9a-zA-Z$]*|MIG[0-9a-zA-Z]*{}\$".format(
                 coalescing_population, coalescing_population
             )
         )
@@ -341,7 +449,7 @@ def get_migration_matrices(num_pops, ghost_present, divergence_events):
         # make a temp matrix without the label
         matrix_without_label = current_matrix[1:]
 
-        # replace any MIG param that has the coalescing population in it
+        # replace any MIG param that has the coalescing population in i
         current_matrix = [
             re.sub(coalescing_population_in_matrix_pattern, "0.000", line)
             for line in matrix_without_label
@@ -379,34 +487,14 @@ def generate_random_params(
     # Step 3 ✓
     initial_growth_rates = [0] * number_of_populations
 
-    # Step 4 -- got something. TODO: come back and make sure this is what we want
+    # Step 4: get historical events
     # determine if they're should be migration
     pops_should_migrate = random.choice([True, False])
-    historical_events = []
 
-    # get divergence events
-    divergence_events = get_divergence_events(
+    historical_events, divergence_events = get_historical_events(
         ghost_present=add_ghost,
         number_of_populations=number_of_populations,
         pops_should_migrate=pops_should_migrate,
-    )
-    historical_events.extend(divergence_events)
-
-    # randomize adding admixture
-    """
-    TODO: should there be migration if admixture? can admixture only happen if there is migration?
-    per ChatGPT, there doesn't have to be migration for there to be admixture
-    """
-    if random.choice([True, False]):
-        admixture_events = get_admixture_events(
-            ghost_present=add_ghost, num_pops=number_of_populations
-        )
-        historical_events.extend(admixture_events)
-
-    # TODO: add bottlenecks, exponential growths.
-    # TODO: order historical events
-    historical_events = order_historical_events(
-        historical_events=historical_events,
     )
 
     # Step 5: build migration matrices (if there is migration) ✓
