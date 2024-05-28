@@ -3,10 +3,10 @@ Simulation parameters for current simulations
 
 
 Deme sizes
-Deme 0	1412773
-Deme 1	364152
-Deme 2	1137788
-Deme 3	35597
+Deme 0	1464767
+Deme 1	811486
+Deme 2	1974461
+Deme 3	557249
 
 
 Sample sizes
@@ -34,34 +34,75 @@ Deme 2	0
 Deme 3	0
 
 
+Migration matrix
+Note that migration rates have been pre-multiplied by factor TDemeCollection::CTTimeUnit (1e+06)
+ 0.0000000 26550.7399777 11915.9058917 2453.5926769 
+94111.1502185  0.0000000 2462276.4504504 132.2004371 
+938.0464901 555723.1896712  0.0000000 1809162.7973239 
+149256.4760526 245714.7403469 1647.7944946  0.0000000 
+
+
+Migration matrix
+Note that migration rates have been pre-multiplied by factor TDemeCollection::CTTimeUnit (1000000.0000000)
+ 0.0000000 26550.7399777  0.0000000 2453.5926769 
+94111.1502185  0.0000000  0.0000000 132.2004371 
+ 0.0000000  0.0000000  0.0000000  0.0000000 
+149256.4760526 245714.7403469  0.0000000  0.0000000 
+
+
+Migration matrix
+Note that migration rates have been pre-multiplied by factor TDemeCollection::CTTimeUnit (1000000.0000000)
+ 0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000 132.2004371 
+ 0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000 245714.7403469  0.0000000  0.0000000 
+
+
+Migration matrix
+Note that migration rates have been pre-multiplied by factor TDemeCollection::CTTimeUnit (1000000.0000000)
+ 0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000 
+
+
 Historical events
 Event 0
 
-#Time              : 4552
-#Source            : 3
+#Time              : 3110
+#Source            : 0
 #Sink              : 2
-#Migrants          : 1
-#New relative size : 1
-#New growth rate   : 0
+#Migrants          : 0.5633502
+#New relative size : 1.0000000
+#New growth rate   : 0.0000000
 #New migr. matrix  : 0
 Event 1
 
-#Time              : 5528
-#Source            : 0
-#Sink              : 2
-#Migrants          : 1
-#New relative size : 1
-#New growth rate   : 0
-#New migr. matrix  : 0
-Event 2
-
-#Time              : 6033
+#Time              : 3767
 #Source            : 2
 #Sink              : 1
-#Migrants          : 1
-#New relative size : 1
-#New growth rate   : 0
-#New migr. matrix  : 0
+#Migrants          : 1.0000000
+#New relative size : 1.0000000
+#New growth rate   : 0.0000000
+#New migr. matrix  : 1
+Event 2
+
+#Time              : 4438
+#Source            : 0
+#Sink              : 3
+#Migrants          : 1.0000000
+#New relative size : 0.8793059
+#New growth rate   : 0.0000000
+#New migr. matrix  : 2
+Event 3
+
+#Time              : 4572
+#Source            : 3
+#Sink              : 1
+#Migrants          : 1.0000000
+#New relative size : 0.6154858
+#New growth rate   : 0.0000000
+#New migr. matrix  : 3
 
 
 Number of independent loci to simulate : 1

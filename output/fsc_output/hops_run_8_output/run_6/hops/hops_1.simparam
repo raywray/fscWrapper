@@ -1,0 +1,135 @@
+Simulation parameters for current simulations
+=============================================
+
+
+Deme sizes
+Deme 0	1260370
+Deme 1	1368696
+Deme 2	387181
+Deme 3	943957
+Deme 4	314960
+
+
+Sample sizes
+Deme 0	18
+Deme 1	19
+Deme 2	41
+Deme 3	20
+Deme 4	0
+
+Sample ages
+Deme 0	0
+Deme 1	0
+Deme 2	0
+Deme 3	0
+Deme 4	0
+
+Inbreeding coefficients
+Deme 0	0
+Deme 1	0
+Deme 2	0
+Deme 3	0
+Deme 4	0
+
+Growth rates
+Deme 0	0
+Deme 1	0
+Deme 2	0
+Deme 3	0
+Deme 4	0
+
+
+Migration matrix
+Note that migration rates have been pre-multiplied by factor TDemeCollection::CTTimeUnit (1e+06)
+ 0.0000000 4859111.9148314 34419.7749525 15293.4657733 524429.5683266 
+8388.4282341  0.0000000 1327.2803477 32728.2309061 9009.5120991 
+2401.2961584 13.6632872  0.0000000 3908.9722666 474646.1597074 
+6109.8400627 727321.0239229 209944.7879873  0.0000000 35.5403220 
+3737.8322405 236.3540666 1125.3381132 3435215.5430847  0.0000000 
+
+
+Migration matrix
+Note that migration rates have been pre-multiplied by factor TDemeCollection::CTTimeUnit (1000000.0000000)
+ 0.0000000 4859111.9148314 34419.7749525 15293.4657733  0.0000000 
+8388.4282341  0.0000000 1327.2803477 32728.2309061  0.0000000 
+2401.2961584 13.6632872  0.0000000 3908.9722666  0.0000000 
+6109.8400627 727321.0239229 209944.7879873  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+
+
+Migration matrix
+Note that migration rates have been pre-multiplied by factor TDemeCollection::CTTimeUnit (1000000.0000000)
+ 0.0000000 4859111.9148314 34419.7749525  0.0000000  0.0000000 
+8388.4282341  0.0000000 1327.2803477  0.0000000  0.0000000 
+2401.2961584 13.6632872  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+
+
+Migration matrix
+Note that migration rates have been pre-multiplied by factor TDemeCollection::CTTimeUnit (1000000.0000000)
+ 0.0000000 4859111.9148314  0.0000000  0.0000000  0.0000000 
+8388.4282341  0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+
+
+Migration matrix
+Note that migration rates have been pre-multiplied by factor TDemeCollection::CTTimeUnit (1000000.0000000)
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+ 0.0000000  0.0000000  0.0000000  0.0000000  0.0000000 
+
+
+Historical events
+Event 0
+
+#Time              : 3550
+#Source            : 4
+#Sink              : 1
+#Migrants          : 1.0000000
+#New relative size : 0.1411744
+#New growth rate   : 0.0000000
+#New migr. matrix  : 1
+Event 1
+
+#Time              : 3952
+#Source            : 3
+#Sink              : 0
+#Migrants          : 1.0000000
+#New relative size : 0.0710455
+#New growth rate   : 0.0000000
+#New migr. matrix  : 2
+Event 2
+
+#Time              : 4112
+#Source            : 2
+#Sink              : 0
+#Migrants          : 1.0000000
+#New relative size : 0.7672904
+#New growth rate   : 0.0000000
+#New migr. matrix  : 3
+Event 3
+
+#Time              : 4553
+#Source            : 1
+#Sink              : 0
+#Migrants          : 1.0000000
+#New relative size : 1.0000000
+#New growth rate   : 0.0000000
+#New migr. matrix  : 4
+
+
+Number of independent loci to simulate : 1
+With the same chromosomal structure
+
+Number of linkage blocks to simulate in structure 1: 1
+
+   1 partially linked FREQ data:
+      recombination and mutation rates                  : 0.0000000000   0.0000000061
+   Do not output expected MAF spectrum
+  Output expected DAF spectrum
+

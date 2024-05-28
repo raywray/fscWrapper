@@ -1,0 +1,35 @@
+//Number of population samples (demes)
+5
+//Population effective sizes (number of genes)
+762735
+560517
+1213
+826064
+1237053
+//Sample Sizes
+18
+19
+41
+20
+0
+//Growth rates : negative growth implies population expansion
+0
+0
+0
+0
+0
+//Number of migration matrices : 0 implies no migration between demes
+0
+//historical event: time, source, sink, migrants, new deme size, growth rate, migr mat index
+5 historical event
+167 2 1 0.6600750213631913 1 0 0
+1030 1 0 1 1 0 0
+1489 4 0 1 1 0 0
+2248 3 2 1 1 0 0
+2960 2 0 1 1 0 0
+//Number of independent loci [chromosome]
+1 0
+//Per chromosome: Number of contiguous linkage Block: a block is a set of contiguous loci
+1
+//per Block:data type, number of loci, per gen recomb and mut rates
+FREQ 1 0 6.100000000000000e-09 OUTEXP
