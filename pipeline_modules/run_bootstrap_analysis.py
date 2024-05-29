@@ -11,9 +11,18 @@ def model_comp_with_aic(path_to_best_max_est_run, prefix):
     # This script calculates AIC from fsc modeling results
     # Run in the folder with the highest likelihood
     """
-    path_to_aic = "/home/raya/Documents/Projects/fscWrapper/utilities/calculateAIC.sh"
-    os.chdir(path_to_best_max_est_run)
+
+    # move in est file to the /prefix dir
+    est_file_path = os.path.join(path_to_best_max_est_run, f"{prefix}.est")
+    best_run_prefix_folder = os.path.join(path_to_best_max_est_run, f"{prefix}")
+
+    os.system(f"cp {est_file_path} {best_run_prefix_folder}")
+
+    # run the aic
+    path_to_aic = "/Users/raya/Documents/School/fscWrapper/utilities/calculateAIC.sh"
+    os.chdir(best_run_prefix_folder)
     os.system(f"{path_to_aic} {prefix}")
+    # the output will the in the working directory under {prefix}.AIC
 
 def visualize_best_fit_model(path_to_best_run, prefix):
     # the .tpl has to be in this folder
@@ -27,12 +36,10 @@ def visualize_best_fit_model(path_to_best_run, prefix):
     os.system(f"{path_to_sfs_tools} -t print2D -i {prefix}")
     # os.system(f"{path_to_plot_model} -p {prefix} -l NyerMak,PundMak")
 
-
-
     return
 
-max_est_run_path = "/home/raya/Documents/Projects/fscWrapper/output/fsc_output/hops_run_1_output/run_1/hops"
+max_est_run_path = "/Users/raya/Documents/School/fscWrapper/output/fsc_output/hops_run_69_output/run_3"
 prefix = "hops"
 
-# model_comp_with_aic(max_est_run_path, prefix)
-visualize_best_fit_model(max_est_run_path, prefix)
+model_comp_with_aic(max_est_run_path, prefix)
+# visualize_best_fit_model(max_est_run_path, prefix)
