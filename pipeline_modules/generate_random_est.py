@@ -8,9 +8,12 @@ def write_est(simple_params, complex_params, est_filename):
             "",
             "[PARAMETERS]",
             "//#isInt? #name #dist. #min #max",
+            "//all Ns are in number of haploid individuals",
         ]
         + [param for param in simple_params]
         + [
+            "",
+            "[RULES]",
             "",
             "[COMPLEX PARAMETERS]",
             "",

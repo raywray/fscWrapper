@@ -3,6 +3,7 @@
 
 [PARAMETERS]
 //#isInt? #name #dist. #min #max
+//all Ns are in number of haploid individuals
 0 MUTRATE$ unif 6.1e-09 6.1e-09 output
 1 N_POP0$ unif 10 2e6 output
 1 N_POP1$ unif 10 2e6 output
@@ -19,6 +20,8 @@
 1 N_BOT00$ unif 10 2e6 output
 1 N_CUR00$ unif 10 2e6 output
 1 N_ANC00$ unif 10 2e6 output
+
+[RULES]
 
 [COMPLEX PARAMETERS]
 

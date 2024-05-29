@@ -47,7 +47,8 @@ def visualize_best_fit_model(path_to_best_run, prefix):
     os.chdir(best_run_full_path)
 
     # run sfs tools: NOTE: this does not work, but idk how to fix it
-    # os.system(f"{path_to_sfs_tools} -t print2D -i {prefix}")
+    os.system(f"{path_to_sfs_tools} -t print2D -i {prefix}")
+    # run plot model 
     os.system(f"{path_to_plot_model} -p {prefix} -l pop0,pop1,pop2,pop3")
 
     return
@@ -55,5 +56,5 @@ def visualize_best_fit_model(path_to_best_run, prefix):
 max_est_run_path = "/Users/raya/Documents/School/fscWrapper/output/fsc_output/hops_run_69_output/run_3"
 prefix = "hops"
 
-model_comp_with_aic(max_est_run_path, prefix)
+# model_comp_with_aic(max_est_run_path, prefix)
 visualize_best_fit_model(max_est_run_path, prefix)
