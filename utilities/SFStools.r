@@ -393,16 +393,19 @@ if(opt$tool %in% c("mto2D","mto1D")){
 {
   # Step 4.1: get list of all 2D-SFS present in folder
   infiles=grep(paste(opt$infile,"_joint[MD]AFpop",sep=""),list.files(),value=T)
+  print(paste("infiles: ", infiles))
   
   # Check 4.1: confirm presence of 2D-SFS files, otherwise abort
   if(length(infiles)>0){
     
     # Step 4.2: get indices of population comparisons
     pop=unique((unlist(lapply(strsplit(infiles,"pop"),function(x){lapply(strsplit(x[2],"[.]"),function(x){x[1]})}))))
+    print(paste("pop: ", pop))
     
     # Step 4.3: determine the presence/absence of minor and derived SFS
     sfstype=NULL;if(sum(grepl("MAF",infiles))>0){sfstype=c(sfstype,"M")};
     if(sum(grepl("DAF",infiles))>0){sfstype=c(sfstype,"D")}
+    print(paste("sfstype: ", sfstype))
     
     # Set some plot settings
     # library(RColorBrewer)
@@ -438,6 +441,7 @@ if(opt$tool %in% c("mto2D","mto1D")){
           
           # Load expected 2D-SFS if present
           if(file.exists(paste(opt$infile,"_joint",fold,"AFpop",j,".txt",sep=""))){
+            print("EXPECTED")
             # Check if expected SFS has header line
             if(sum(grepl("observation",scan(paste(opt$infile,"_joint",fold,"AFpop",j,".txt",sep=""),what = "character")))>0){
               sim<-as.matrix(read.table(paste(opt$infile,"_joint",fold,"AFpop",j,".txt",sep=""),skip=1,header=T))
@@ -473,15 +477,21 @@ if(opt$tool %in% c("mto2D","mto1D")){
             image(0:(dim(obs)[1]-1),0:(dim(obs)[2]-1),obs,col=rev(ramp99),zlim=0.5,breaks=br,axes=F,
                   xlab="",ylab="",main="observed SFS",xpd=NA);box()
             axis(2);axis(1)
-          }else{plot(0,0,type="n",xlab="",ylab="",axes=F)}
+          }else{
+            plot(0,0,type="n",xlab="",ylab="",axes=F)
+          }
+          print("did sfs")
           mtext(paste("population",unlist(strsplit(j,"[_]"))[2]),2,at=grconvertY(0.5,"ndc","user"),line=2)
           
           # Print expected SFS
           if(is.matrix(sim)){
+            print("SIM")
             image(0:(dim(sim)[1]-1),0:(dim(sim)[2]-1),sim,col=rev(ramp99),zlim=0.5,breaks=br,axes=F,
                 xlab="",ylab="",main="expected SFS"); box()
             axis(2);axis(1)
-          }else{plot(0,0,type="n",xlab="",ylab="",axes=F)}
+          }else{
+            plot(0,0,type="n",xlab="",ylab="",axes=F)
+          }
           # Print color code legend
           logax=c(1,2,5)*rep(10^(seq(0,floor(uplog))),each=3);
           logax=c(0.5,logax[logax<10^(uplog)],round(10^(uplog),0))
@@ -498,7 +508,16 @@ if(opt$tool %in% c("mto2D","mto1D")){
 
           # Print difference between observed and expected
           if(is.matrix(sim) & is.matrix(obs)){
+            print("BOTH MAT")
+            # print(paste("sim: ", sim))
+            # print(paste("obs: ", obs))
+            if (dim(sim)[1] != dim(obs)[1] || dim(sim)[2] != dim(obs)[2]) {
+              print("NOT EQUAL")
+              # Adjust dimensions here
+              # For example, you can subset or reshape one of the arrays
+            }
             dif=sim-obs
+            print(paste("dif: ", dif))
             # difcols=colorRampPalette(c(brewer.pal(10,"RdBu")[1:5],"#FFFFFF",brewer.pal(10,"RdBu")[6:10]))
             difcols99=c("#67001F","#6E0220","#760421","#7D0722","#850923","#8D0C25","#940E26","#9C1127","#A41328","#AB162A","#B2192B","#B6202F","#BA2832","#BD2F36","#C13639","#C53E3D","#C84540","#CC4C43","#D05447","#D35B4A","#D7624F","#DA6954","#DD7059","#E0775F","#E37E64","#E6866A","#E98D6F","#EC9475","#EF9B7A","#F2A27F","#F4A886","#F5AD8D","#F6B394","#F7B89B","#F8BEA2","#F9C3A9","#FAC9B0","#FACEB7","#FBD4BE","#FCD9C5","#FDDDCB","#FDE1D1","#FDE5D6","#FDE8DC","#FDECE2","#FEF0E8","#FEF3ED","#FEF7F3","#FEFBF9","#FFFEFE","#FAFCFD","#F5F9FB","#F0F7FA","#ECF4F8","#E7F1F7","#E2EFF5","#DEECF4","#D9E9F2","#D4E7F1","#CFE4EF","#C9E1ED","#C2DDEB","#BCDAEA","#B6D7E8","#AFD4E6","#A9D0E4","#A2CDE2","#9CCAE0","#95C6DF","#8EC2DC","#86BDDA","#7EB8D7","#76B3D4","#6EAED1","#66A9CF","#5EA4CC","#569FC9","#4E9AC6","#4695C4","#4090C1","#3D8BBF","#3987BC","#3682BA","#337DB8","#2F79B5","#2C74B3","#2870B1","#256BAE","#2166AC","#1E61A5","#1B5C9E","#195696","#16518E","#134B87","#10467F","#0D4077","#0A3B70","#073568","#053061")
             difcols30=c("#67001F","#800823","#9A1027","#B31A2C","#BF3337","#CC4C43","#D86450","#E27C62","#EC9475","#F4AA89","#F8BDA0","#FBCFB8","#FDDFCE","#FDECE2","#FEF8F5","#F7FAFC","#E7F1F7","#D7E8F2","#C3DEEC","#AED3E6","#98C8DF","#7EB8D7","#63A7CE","#4896C4","#3986BC","#2D77B4","#2267AC","#185594","#0E427A","#053061")

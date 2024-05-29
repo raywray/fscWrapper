@@ -1,4 +1,4 @@
-#!/usr/bin/Rscript
+#! /usr/bin/env Rscript
 
 # (c) Joana Meier 2018
 # R-script to plot the model
@@ -48,8 +48,8 @@ plotModelBestParams <- function (prefix="",logNe=FALSE) {
   maxLpar<-readLines(paste(path,prefix,"_maxL.par",sep=""))
   
   # parse the tpl file
-  NeVar<-tpl[(grep("Population effective sizes",tpl)+1):(grep("//Haploid",tpl)-1)]
-  Ne<-as.integer(maxLpar[(grep("Population effective sizes",maxLpar)+1):(grep("//Haploid",maxLpar)-1)])
+  NeVar<-tpl[(grep("Population effective sizes",tpl)+1):(grep("//Sample",tpl)-1)]
+  Ne<-as.integer(maxLpar[(grep("Population effective sizes",maxLpar)+1):(grep("//Sample",maxLpar)-1)])
   orNe<-Ne
   totN<-sum(Ne)
   eventsVar<-tpl[(grep("//historical event",tpl)+2):(grep("//Number of independent loci",tpl)-1)]
@@ -58,7 +58,7 @@ plotModelBestParams <- function (prefix="",logNe=FALSE) {
   events<-sub(pattern = "  ",replacement = " ",x = events)
   splits<-strsplit(x=events,split=" ")
   age<-rep(0,times=popN)
-  migMatrixN<-tpl[(grep("//Number of migration matrices",tpl)+1)]
+  migMatrixN<-tpl[(grep("Number of migration matrices ",tpl)+1)]
   maxMig<-0
   
   # remove events that do not merge populations (e.g. change of migration matrix) (same dummy population is source and sink)
@@ -70,16 +70,19 @@ plotModelBestParams <- function (prefix="",logNe=FALSE) {
   edgeN=1
   mig<-NA
   migTimes<-NA
-  for(i in 0:(as.integer(migMatrixN)-1)){
-    lN<-grep(paste("//Migration matrix ",i,sep=""),maxLpar)
-    migMatrix<-maxLpar[(lN+1):(lN+popN)]
-    if(i<1) mig<-strsplit(x=migMatrix,split="\\s+")
-    if(i>0) mig<-c(mig,strsplit(x=migMatrix,split="\\s+"))
+
+  if (as.integer(migMatrixN) > 0) {
+    for(i in 0:(as.integer(migMatrixN)-1)){
+      lN<-grep(paste("//Migration matrix ",i,sep=""),maxLpar)
+      migMatrix<-maxLpar[(lN+1):(lN+popN)]
+      if(i<1) mig<-strsplit(x=migMatrix,split="\\s+")
+      if(i>0) mig<-c(mig,strsplit(x=migMatrix,split="\\s+"))
+    }
+    migProp<-as.double(unlist(mig)[unlist(mig)!="0"])
+    edgeN<-length(migProp)
+    maxMig<-max(migProp)
   }
-  migProp<-as.double(unlist(mig)[unlist(mig)!="0"])
-  edgeN<-length(migProp)
-  maxMig<-max(migProp)
-  
+
   
   # add real split times and sort by split times
   for(i in 1:length(splits)){
@@ -100,7 +103,7 @@ plotModelBestParams <- function (prefix="",logNe=FALSE) {
     propMerge<-as.integer(splits[[i]][5])
     AncN<-as.double(splits[[i]][6])
     sinkPop<-as.integer(splits[[i]][4])+1
-    if(propMerge==1 && age[sourcePop]==0) age[sourcePop]=time
+    if(propMerge==1 && age[sourcePop]==0) {age[sourcePop]=time}
     if(AncN!=1){
       if(age[sinkPop]==0) age[sinkPop]=time
       # to get maxN for plotting, account for ancestral Ne changes
@@ -283,6 +286,7 @@ if(file.exists(paste0(path,prefix,"/",prefix,".AIC"))){
 }else{
   aic<-NA
 }
+
 title(sub=paste("MaxEstLhood: ",round(bestlk["MaxEstLhood"],digits=1),
                 ", MaxObsLhood: ",round(bestlk["MaxObsLhood"],digits=1),
                 ", diff: ",round(aic$deltaL,digits=1),
