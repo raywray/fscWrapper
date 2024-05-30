@@ -34,6 +34,7 @@ def run_setup(cur_run, output_dir, project_path):
 
 
 def run_simluations(user_params, num_of_sims, output_dir, project_path):
+    # TODO: edit this function so that it generates 1 random tpl/est, and then runs fsc on that x number of times (ideally 100)
     # run x number of fsc simulations
     for i in range(1, num_of_sims + 1):
         # prepare folder for run

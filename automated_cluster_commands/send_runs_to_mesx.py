@@ -32,10 +32,10 @@ def add_params_to_run_template():
     number_of_sims = 1000 # TODO: hardcoded
 
     for i in range(number_of_sims):
-        job_name = f"hops_run_{i+1}"
+        job_name = f"hops_run_{i+1}" # TODO: change to f"hops_batch_{i+1}"
 
         new_script_file_name = job_name + ".sh"
-        output_dir_name = fsc_output_path_mesx + "/" + job_name + "_output"
+        output_dir_name = fsc_output_path_mesx + "/" + job_name + "_output" # could recode as os.path.join(fsc_output_path_mesx, f"{job_name)_output")
         sh_replacements = [("JOBNAME", job_name), ("OUTPUT_DIR", output_dir_name), ("PROJECT_PATH", project_path)]
 
         new_sh_created = write_sh_file(
