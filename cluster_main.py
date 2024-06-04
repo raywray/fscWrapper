@@ -31,9 +31,6 @@ def run(output_dir, project_path, prefix, cur_run):
         cur_run=cur_run, output_dir=output_dir, project_path=project_path, prefix=prefix
     )
 
-    # NOTE: commenting these out because it results in a segmentation fault. FSC should be run in the folder anyways, so it shouldn't matter
-    # tpl_file_path = os.path.join(output_dir, f"run_{cur_run}", f"{prefix}.tpl")
-    # est_file_path = os.path.join(output_dir, f"run_{cur_run}", f"{prefix}.est")
     tpl_filename = f"{prefix}.tpl"
     est_filename = f"{prefix}.est"
     
@@ -43,7 +40,7 @@ def run(output_dir, project_path, prefix, cur_run):
 
 if __name__ == "__main__":
     # get user params
-    # example call: python3 cluster_main.py output_directory/ fscWrapper_project_path/ hops random.tpl random.est 3
+    # example call: python3 cluster_main.py output_directory/ fscWrapper_project_path/ hops 3
     if len(sys.argv) < 2:
         print("Usage: python script.py <parameter>")
         sys.exit(1)
