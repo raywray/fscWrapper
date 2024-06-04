@@ -1,0 +1,2 @@
+rm -rf /Users/raya/Documents/School/fscWrapper/sim_output/fsc_output/hops_random_model_2/run_1
+python3 cluster_main.py /Users/raya/Documents/School/fscWrapper/sim_output/fsc_output/hops_random_model_2 /Users/raya/Documents/School/fscWrapper hops /Users/raya/Documents/School/fscWrapper/sim_output/fsc_output/hops_random_model_2/hops.tpl /Users/raya/Documents/School/fscWrapper/sim_output/fsc_output/hops_random_model_2/hops.est 1

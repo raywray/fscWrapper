@@ -4,8 +4,9 @@ import time
 
 import log
 
-def execute_command(command):
-    os.system(command)
+def sleepy_timer(seconds):
+    print(f"Sleeping for {seconds} seconds...")
+    time.sleep(seconds)
 
 
 def add_params_to_run_template():
@@ -62,10 +63,15 @@ def add_params_to_run_template():
         cmds_to_qsub_via_ssh.append(cmd + ";")
 
     # submit all qsub commands
-    full_cmd_with_all_qsubs = [
-        "cd " + script_destination_folder_mesx + ";",
-    ] + cmds_to_qsub_via_ssh
-    out_string, error_string = send_cmd_to_cluster(me_at_remote_URL, full_cmd_with_all_qsubs, local_out_dir, retry=True)
+    # this is where we do it in groups of 10
+    group_size = 10
+    for i in range(0, len(cmds_to_qsub_via_ssh), group_size):
+        group_qsub_cmds = cmds_to_qsub_via_ssh[i:i+group_size]
+        full_cmd_with_group_qsubs = [
+            "cd " + script_destination_folder_mesx + ";",
+        ] + group_qsub_cmds 
+        out_string, error_string = send_cmd_to_cluster(me_at_remote_URL, full_cmd_with_group_qsubs, local_out_dir, retry=True)
+        sleepy_timer(1)
     
     return
 
