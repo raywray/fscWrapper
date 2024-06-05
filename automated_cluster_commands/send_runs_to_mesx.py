@@ -38,13 +38,16 @@ def add_params_to_run_template():
     )
     local_out_dir = os.path.join(local_base_path, "sim_output")
     mesx_cluster_cmds_folder = os.path.join(mesx_base_path, "cluster_commands")
-    mesx_out_dir = os.path.join(mesx_base_path, "output")
+    # mesx_out_dir = os.path.join(mesx_base_path, "output")
+    mesx_out_dir = os.path.join("/usr/scratch2/userdata2/resplin5072", "output")
     mesx_qsub_script_destination_folder = os.path.join(
         mesx_cluster_cmds_folder, simulation_subfolder
     )
     mesx_fsc_output_dir = os.path.join(mesx_out_dir, simulation_subfolder)
     local_output_simulation_dir = os.path.join(local_out_dir, simulation_subfolder)
     local_output_cmds_folder = os.path.join(local_out_dir, "qsub_commands")
+    local_initial_submit_jobs_script_path = os.path.join(local_base_path, "automated_cluster_commands/submit_all_jobs.sh")
+    local_cluster_cmds_txt_file_path = os.path.join(local_output_cmds_folder, "cluster_cmds.txt")
 
     # initialize cluster commands var
     cluster_cmds = []
@@ -58,8 +61,8 @@ def add_params_to_run_template():
     # *********START OF SCRIPT*****************************************************
 
     # step 1: define number of randomly generated models
-    num_models = 5  # TODO: change to 1000
-    num_simulations_per_model = 2  # TODO: change to 1000
+    num_models = 1000  # TODO: change to 1000
+    num_simulations_per_model = 1000  # TODO: change to 1000
 
     # step 2: generate random models
     for i in range(num_models):
@@ -97,6 +100,7 @@ def add_params_to_run_template():
     out_string, error_string = run_and_wait_on_process(
         copy_model_output_dirs_to_mesx_cmd, local_out_dir
     )
+    print("copied all files to mesx")
 
     # now, create all the .sh files
     for i in range(num_models):
@@ -122,6 +126,12 @@ def add_params_to_run_template():
             )
             cluster_cmds.append(new_script_file_name)
 
+    # write cluster cmds to txt file
+    with open(local_cluster_cmds_txt_file_path, "w") as f:
+        f.write("\n".join(cluster_cmds))
+    # copy submit all jobs to local out dir
+    os.system(f"cp {local_initial_submit_jobs_script_path} {local_output_cmds_folder}")
+    # make the qsub to submit all jobs
     # copy over folder cluster cmds
     copy_cluster_cmds_to_mesx_cmd = [
         "scp",
@@ -134,23 +144,34 @@ def add_params_to_run_template():
         copy_cluster_cmds_to_mesx_cmd, local_out_dir
     )
 
-    # now, make all qsub commands
-    cmds_to_qsub_via_ssh = []
-    for cmd in cluster_cmds:
-        cmds_to_qsub_via_ssh.append("qsub")
-        cmds_to_qsub_via_ssh.append(cmd + ";")
+    # TODO: when submitting, cd to mesx cluster cmds folder
+    # submit job to mesx
+    full_sumbit_job_mesx_cmd = [
+        "cd " + mesx_qsub_script_destination_folder + ";",
+        "bash submit_all_jobs.sh cluster_cmds.txt;",
+    ]
+    out_string, error_string = send_cmd_to_cluster(
+        me_at_remote_URL, full_sumbit_job_mesx_cmd, local_out_dir, retry=True
+    )
+
+    # # now, make all qsub commands
+    # cmds_to_qsub_via_ssh = []
+    # for cmd in cluster_cmds:
+    #     cmds_to_qsub_via_ssh.append("qsub")
+    #     cmds_to_qsub_via_ssh.append(cmd + ";")
 
     # submit all qsub commands in groups of x
-    group_size = 20  # this is actually groups of group_size / 2
-    for i in range(0, len(cmds_to_qsub_via_ssh), group_size):
-        group_qsub_cmds = cmds_to_qsub_via_ssh[i : i + group_size]
-        full_cmd_with_group_qsubs = [
-            "cd " + mesx_qsub_script_destination_folder + ";",
-        ] + group_qsub_cmds
-        out_string, error_string = send_cmd_to_cluster(
-            me_at_remote_URL, full_cmd_with_group_qsubs, local_out_dir, retry=True
-        )
-        sleepy_timer(0.1)
+    # NEW PLAN: make a qsub job that will loop over the jobs and submit them to qsub while logged into the head node
+    # group_size = 20  # this is actually groups of group_size / 2
+    # for i in range(0, len(cmds_to_qsub_via_ssh), group_size):
+    #     group_qsub_cmds = cmds_to_qsub_via_ssh[i : i + group_size]
+    #     full_cmd_with_group_qsubs = [
+    #         "cd " + mesx_qsub_script_destination_folder + ";",
+    #     ] + group_qsub_cmds
+    #     out_string, error_string = send_cmd_to_cluster(
+    #         me_at_remote_URL, full_cmd_with_group_qsubs, local_out_dir, retry=True
+    #     )
+    #     sleepy_timer(1)
 
 
 def write_sh_file(template_file, out_dir, new_file_name, replacements):
