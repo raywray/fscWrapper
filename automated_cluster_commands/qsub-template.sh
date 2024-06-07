@@ -1,10 +1,14 @@
 #!/bin/bash -l
-#
+
 #PBS -V
-#PBS -l nodes=1:ppn=1
+#PBS -l nodes=1:ppn=20
 #PBS -N JOBNAME
+#PBS -o JOBNAME.stdout
+#PBS -e JOBNAME.stderr
 #PBS -joe
 #PBS -q batch
+#PBS -m abe
+#PBS -M resplin5072@sdsu.edu
 
 cd $PBS_O_WORKDIR
 NCORES=`wc -w < $PBS_NODEFILE`

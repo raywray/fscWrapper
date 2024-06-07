@@ -24,9 +24,9 @@ while IFS= read -r PBS_SCRIPT; do
         echo "Submitted: $PBS_SCRIPT"
         COUNTER=$((COUNTER + 1))
         # Sleep after every 10th submission
-        if [ $((COUNTER % 10)) -eq 0 ]; then
-            sleep 1  # Adjust the sleep duration as needed
-        fi
+        # if [ $((COUNTER % 100)) -eq 0 ]; then
+        #     sleep 1m  # Adjust the sleep duration as needed
+        # fi
     else
         echo "Script not found: $PBS_SCRIPT"
     fi
