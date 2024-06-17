@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
 #PBS -V
-#PBS -l nodes=1:ppn=1
+#PBS -l NODES
 #PBS -N JOBNAME
 #PBS -joe
 #PBS -q batch
@@ -37,8 +37,17 @@ project_path=PROJECT_PATH
 fsc_wrapper_py="${project_path}/cluster_main.py"
 output_dir=OUTPUT_DIR
 prefix=PREFIX
-cur_run=CUR_RUN
+num_first_sim=NUM_FIRST_SIM
+num_last_sim=NUM_LAST_SIM
 
-# Run the Python script
-echo python3 $fsc_wrapper_py $output_dir $project_path $prefix $cur_run
-python3 $fsc_wrapper_py $output_dir $project_path $prefix $cur_run
+for i in $(seq $num_first_sim $num_last_sim); do
+    # Run the Python script
+    echo python3 $fsc_wrapper_py $output_dir $project_path $prefix $i
+    python3 $fsc_wrapper_py $output_dir $project_path $prefix $i &
+done
+
+# Wait for all background jobs to finish
+wait
+
+echo "All instances of the Python script have completed"
+
