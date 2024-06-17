@@ -1,5 +1,11 @@
 import os
 
+def make_best_run_dir(best_fit_run, output_dir):
+    best_random_model, best_run = best_fit_run.split(":")
+    best_run_dir = os.path.join(output_dir, "best_run")
+    dir_to_copy = os.path.join(output_dir, best_random_model, best_run)
+    os.system(f"cp -r {dir_to_copy} {best_run_dir}")
+
 def extract_all_max_lhoods(num_models,num_sims, prefix, output_dir_path):
     results = []
 
@@ -47,4 +53,5 @@ num_sims_per_model = 10
 
 all_max_results = extract_all_max_lhoods(num_random_models, num_sims_per_model, prefix, local_out_dir)
 best_fit_run = get_overall_best_model(all_max_results, local_out_dir)
+make_best_run_dir(best_fit_run, local_out_dir)
 print("best fit run: ", best_fit_run)
