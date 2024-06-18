@@ -1,26 +1,22 @@
 import os
-import re
 
-def extract_best_run(output_dir, prefix):
-    best_lhoods_txt_path = os.path.join(output_dir, "best_lhoods_results.txt")
-    with open(best_lhoods_txt_path, "r") as f:
-        first_line = f.readline().strip()
-    best_run_pattern = re.compile(r'(\d+):(\d+)')
-    match = best_run_pattern.search(first_line)
-    if match:
-        simulation_group = match.group(1)
-        run = match.group(2)
+isMacbook = False
+if isMacbook:
+    base_path = "/Users/raya/Documents/School"
+else:
+    base_path = "/home/raya/Documents/Projects"
+
+FSC_PROJECT_PATH = os.path.join(base_path, "fscWrapper")
+UTILITIES_PATH = os.path.join(FSC_PROJECT_PATH, "utilities")
+
+
+def run_script(script_command):
+    result = os.system(script_command)
+    if result != 0:
+        print("SCRIPT FAILED TO EXECUTE********************")
     else:
-        print("No match found")
-    
-    new_best_run_folder = os.path.join(output_dir, "best_run")
-    
-    if not os.path.exists(new_best_run_folder):
-        os.makedirs(new_best_run_folder)
-        path_to_best_run = os.path.join(output_dir, f"{prefix}_run_{simulation_group}_output/run_{run}")
-        os.system(f"cp -r {path_to_best_run}/* {new_best_run_folder}")
-    
-    return new_best_run_folder
+        print("SCRIPT SUCCESSFULLY EXECUTED****************")
+
 
 def model_comp_with_aic(path_to_best_max_est_run, prefix):
     # the folder in the path must have the .bestlhoods and the .est (might have to move the .est in manually)
@@ -41,16 +37,33 @@ def model_comp_with_aic(path_to_best_max_est_run, prefix):
     os.system(f"cp {est_file_path} {best_run_prefix_folder}")
 
     # run the aic
-    path_to_aic = "/Users/raya/Documents/School/fscWrapper/utilities/calculateAIC.sh"
+    aic_executable = os.path.join(UTILITIES_PATH, "calculateAIC.sh")
+
     os.chdir(best_run_prefix_folder)
-    os.system(f"{path_to_aic} {prefix}")
+    print("TRYING AIC CALCULATION**********************")
+    run_script(f"{aic_executable} {prefix}")
     # the output will the in the working directory under {prefix}.AIC
+
+
+def extract_number_of_samples(filename):
+    with open(filename, "r") as file:
+        for line in file:
+            # Remove leading and trailing whitespace from each line
+            line = line.strip()
+            # Check if the line starts with "//Number of population samples"
+            if line.startswith("//Number of population samples (demes)"):
+                number_of_samples = next(file).strip()
+                return int(number_of_samples)
+
+    # Return None if the line is not found
+    return None
+
 
 def visualize_best_fit_model(path_to_best_run, prefix):
     # the .tpl has to be in this folder, as well as the .obs sfs's
     """
     SFStools.r -t print2D -i early_geneflow
-    plotModel.r -p early_geneflow -l NyerMak,PundMak    
+    plotModel.r -p early_geneflow -l NyerMak,PundMak
     """
     # move tpl into folder
     tpl_file_path = os.path.join(path_to_best_run, f"{prefix}.tpl")
@@ -62,23 +75,32 @@ def visualize_best_fit_model(path_to_best_run, prefix):
     os.system(f"cp {obs_file_path} {best_run_prefix_folder}")
 
     # define paths
-    path_to_sfs_tools = "/Users/raya/Documents/School/fscWrapper/utilities/SFStools.r"
-    path_to_plot_model = "/Users/raya/Documents/School/fscWrapper/utilities/plotModel.r"
+    sfs_tools_executable = os.path.join(UTILITIES_PATH, "SFStools.r")
+    plot_model_executable = os.path.join(UTILITIES_PATH, "plotModel.r")
     best_run_full_path = os.path.join(path_to_best_run, prefix)
 
     os.chdir(best_run_full_path)
 
     # run sfs tools: NOTE: this does not work, but idk how to fix it
-    os.system(f"{path_to_sfs_tools} -t print2D -i {prefix}")
-    # run plot model 
-    os.system(f"{path_to_plot_model} -p {prefix} -l pop0,pop1,pop2,pop3")
+    print("TRYING SFS TOOLS****************************")
+    run_script(f"{sfs_tools_executable} -t print2D -i {prefix}") 
 
+    # run plot model
+    # need number of pops to plot
+    num_pops = extract_number_of_samples(tpl_file_path)
+    populations_list = []
+    for i in range(num_pops):
+        populations_list.append(f"pop{i}")
+    populations = ",".join(populations_list)
+
+    print("TRYING PLOT MODEL***************************")
+    run_script(f"{plot_model_executable} -p {prefix} -l {populations}")
     return
 
 
-output_dir = "/Users/raya/Documents/School/fscWrapper/output/fsc_output"
+output_dir = "/home/raya/Documents/Projects/output/fsc_output"
 prefix = "hops"
-max_est_run_path = extract_best_run(output_dir, prefix)
+best_run_path = os.path.join(output_dir, "best_run")
 
-# model_comp_with_aic(max_est_run_path, prefix)
-visualize_best_fit_model(max_est_run_path, prefix)
+model_comp_with_aic(best_run_path, prefix)
+visualize_best_fit_model(best_run_path, prefix)

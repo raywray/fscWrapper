@@ -1,4 +1,4 @@
-#!/opt/homebrew/bin/Rscript
+#! /usr/bin/Rscript
 # Joana Meier
 # if using this script, please cite Meier et al. Mol Ecol 2017 https://pubmed.ncbi.nlm.nih.gov/27613570/ 
 

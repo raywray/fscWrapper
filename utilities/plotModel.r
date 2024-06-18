@@ -1,4 +1,4 @@
-#! /usr/bin/env Rscript
+#! /usr/bin/Rscript
 
 # (c) Joana Meier 2018
 # R-script to plot the model
