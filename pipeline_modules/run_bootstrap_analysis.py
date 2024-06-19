@@ -95,6 +95,11 @@ def visualize_best_fit_model(path_to_best_run, prefix):
 
     print("TRYING PLOT MODEL***************************")
     run_script(f"{plot_model_executable} -p {prefix} -l {populations}")
+
+def recompute_likelihoods():
+    # will need to send to cluster
+    # run each of the top 10 models 100 more times -- see notes
+    # see notes for further steps
     return
 
 
@@ -102,5 +107,5 @@ output_dir = "/home/raya/Documents/Projects/output/fsc_output"
 prefix = "hops"
 best_run_path = os.path.join(output_dir, "best_run")
 
-model_comp_with_aic(best_run_path, prefix)
-visualize_best_fit_model(best_run_path, prefix)
+# model_comp_with_aic(best_run_path, prefix)
+# visualize_best_fit_model(best_run_path, prefix)
