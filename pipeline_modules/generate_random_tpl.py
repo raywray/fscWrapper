@@ -37,6 +37,7 @@ def write_tpl(
         "1",
         "//per Block:data type, number of loci, per gen recomb and mut rates",
         f"FREQ 1 0 MUTRATE$ OUTEXP",
+        ""
     ]
 
     # write to file

@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#
+
 #PBS -V
 #PBS -l nodes=1:ppn=1
 #PBS -N JOBNAME
@@ -34,10 +34,11 @@ conda info --envs | grep '^*'
 
 # Define paths to Python script and input file
 project_path=PROJECT_PATH
-fsc_wrapper_py="${project_path}main.py"
-user_param_input_file=/home/resplin5072/fscWrapper/user_input_hops_k4.yml
+fsc_wrapper_py="${project_path}/cluster_main.py"
 output_dir=OUTPUT_DIR
+prefix=PREFIX
+cur_run=CUR_RUN
 
 # Run the Python script
-echo python3 $fsc_wrapper_py $user_param_input_file $output_dir
-python3 $fsc_wrapper_py $user_param_input_file $output_dir $project_path
+echo python3 $fsc_wrapper_py $output_dir $project_path $prefix $cur_run
+python3 $fsc_wrapper_py $output_dir $project_path $prefix $cur_run

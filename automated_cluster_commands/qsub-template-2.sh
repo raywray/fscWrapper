@@ -1,8 +1,8 @@
 #!/bin/bash -l
-#
+
 #PBS -V
-#PBS -l nodes=1:ppn=1
-#PBS -N samplerun_fsc
+#PBS -l NODES
+#PBS -N JOBNAME
 #PBS -joe
 #PBS -q batch
 
@@ -21,7 +21,7 @@ echo " "
 # Activate the Conda environment
 conda init bash
 source /home/resplin5072/bashrc-miniconda3
-conda activate fscwrapper_test_env
+conda activate fsc_wrapper_env
 
 # Change to the working directory
 cd $PBS_O_WORKDIR
@@ -33,9 +33,21 @@ echo "activating my env"
 conda info --envs | grep '^*'
 
 # Define paths to Python script and input file
-fsc_wrapper_py=/home/resplin5072/fscWrapper/main.py
-user_param_input_file=/home/resplin5072/fscWrapper/user_input_hops_k4.yml
+project_path=PROJECT_PATH
+fsc_wrapper_py="${project_path}/cluster_main.py"
+output_dir=OUTPUT_DIR
+prefix=PREFIX
+num_first_sim=NUM_FIRST_SIM
+num_last_sim=NUM_LAST_SIM
 
-# Run the Python script
-echo python3 $fsc_wrapper_py $user_param_input_file
-python3 $fsc_wrapper_py $user_param_input_file
+for i in $(seq $num_first_sim $num_last_sim); do
+    # Run the Python script
+    echo python3 $fsc_wrapper_py $output_dir $project_path $prefix $i
+    python3 $fsc_wrapper_py $output_dir $project_path $prefix $i &
+done
+
+# Wait for all background jobs to finish
+wait
+
+echo "All instances of the Python script have completed"
+

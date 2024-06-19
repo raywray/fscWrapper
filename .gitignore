@@ -1,3 +1,8 @@
+# Ignore __pycache__ directories
+__pycache__/
+**/__pycache__/
+# Ignore compiled Python files
+*.py[cod]
 Archive/*
 .vscode
 test*
