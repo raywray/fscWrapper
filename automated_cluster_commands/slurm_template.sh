@@ -46,4 +46,5 @@ i=$(echo $PARAMS | cut -d ' ' -f 4)
 fsc_wrapper_py="${project_path}/cluster_main.py"
 
 # Run your Python script with the parameters
+echo python3 $fsc_wrapper_py $output_dir $project_path $prefix $i
 python3 $fsc_wrapper_py $output_dir $project_path $prefix $i

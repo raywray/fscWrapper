@@ -19,6 +19,9 @@ LOCAL_OUT_DIR = os.path.join(LOCAL_BASE_PATH, "sim_output")
 LOCAL_OUTPUT_SIM_DIR = os.path.join(LOCAL_OUT_DIR, SIMULATION_SUB_FOLDER)
 LOCAL_OUTPUT_COMMANDS_DIR = os.path.join(LOCAL_OUT_DIR, "slurm_commands")
 LOCAL_CLUSTER_CMDS_FILE = os.path.join(LOCAL_OUTPUT_COMMANDS_DIR, "cluster_cmds.txt")
+LOCAL_SUBMIT_JOBS_SCRIPT = os.path.join(
+    LOCAL_BASE_PATH, "automated_cluster_commands", "submit_all_slurm_jobs.sh"
+)
 
 # remote
 REMOTE_BASE_PATH = "/rhome/respl001"
@@ -87,20 +90,10 @@ def copy_models_dir_to_cluster():
 
 
 def create_job_scripts(num_models, num_sims_per_model):
-    """
-    here is the plan: I have 4 partitions I can use: epyc, intel, batch, & armstrong lab
-    epyc, intel, and batch all have 256 cores that I can use at a given time (but will queue longer ones maybe?)
-    Armstronglab cores = unknown
-
-    with slurm array, 2500 jobs is the max
-
-    so what I can do is a round robin --
-        submit 2500 to intel, 2500 to epyc, etc, and then do it again until all 100,000 are taken care of
-    """
     cluster_cmds = []
-    partitions = ["epyc", "intel", "batch", "armstronglab"]
-    partition_counter = 0 
-    max_jobs_per_array = 25
+    partitions = ["epyc", "intel", "batch"]
+    partition_counter = 0 # initialize the couter to 0
+    max_jobs_per_array = 2500
     total_jobs_to_run = num_models * num_sims_per_model
 
     # step 1: figure out how many outer scripts there are
@@ -113,13 +106,13 @@ def create_job_scripts(num_models, num_sims_per_model):
     for job in range(num_outer_job_scripts):
         job_name = f"hops_run_{job + 1}"
         partition = partitions[partition_counter]
-        if partition_counter == 3:
+        if partition_counter == len(partitions) - 1:
             partition_counter = 0
         else:
             partition_counter += 1
 
         # step 1a: make the params.txt file
-        param_txt_file_base_name = f"params_{job+1}.txt"
+        param_txt_file_base_name = f"params_{job + 1}.txt"
         param_txt_file_path = os.path.join(
             LOCAL_OUTPUT_COMMANDS_DIR, param_txt_file_base_name
         )
@@ -140,12 +133,13 @@ def create_job_scripts(num_models, num_sims_per_model):
             for param_line in params:
                 line = " ".join(param_line)
                 f.write(line + "\n")
-        # step 1b: finish script
+        
+        # step 1b: make individual scripts
         replacements = [
             ("JOB_NAME", job_name),
             ("PARTITION", partition),
             ("PARAM_FILE", param_txt_file_base_name),
-            ("ARRAY_MAX", str(max_jobs_per_array))
+            ("ARRAY_MAX", str(max_jobs_per_array)),
         ]
         job_script_name = job_name + ".sh"
         job = cluster_commands.write_sh_file(
@@ -157,6 +151,7 @@ def create_job_scripts(num_models, num_sims_per_model):
         cluster_cmds.append(job_script_name)
     return cluster_cmds
 
+
 def write_cluster_cmds_to_txt_file(cluster_cmds):
     with open(LOCAL_CLUSTER_CMDS_FILE, "w") as f:
         f.write("\n".join(cluster_cmds))
@@ -165,8 +160,8 @@ def write_cluster_cmds_to_txt_file(cluster_cmds):
 
 """SCRIPT"""
 def run():
-    num_models = 10  # TODO: change to 1000
-    num_sims_per_model = 5 # TODO: change to 100
+    num_models = 1000  # TODO: change to 1000
+    num_sims_per_model = 100  # TODO: change to 100
 
     # make local output dirs
     make_dirs(LOCAL_OUT_DIR)
@@ -177,15 +172,35 @@ def run():
     generate_random_models(num_models)
 
     # step 2: make remote output dirs (if not already made)
-    # make_remote_output_dir()
+    make_remote_output_dir()
 
     # step 3: copy all output dirs to cluster
-    # copy_models_dir_to_cluster()
+    copy_models_dir_to_cluster()
 
     # step 4: make scripts
     cluster_cmds = create_job_scripts(num_models, num_sims_per_model)
     write_cluster_cmds_to_txt_file(cluster_cmds)
 
+    # step 5: copy the submit all script to local output dir
+    copy_script_cmd = ["cp", LOCAL_SUBMIT_JOBS_SCRIPT, LOCAL_OUTPUT_COMMANDS_DIR]
+    execute_command(copy_script_cmd)
+
+    # step 6: copy slurm cmds to remote dir
+    copy_cluster_cmds_to_remote_cmd = [
+        "scp",
+        "-r",
+        LOCAL_OUTPUT_COMMANDS_DIR,
+        ME_AT_REMOTE_URL + ":" + REMOTE_SLURM_DESTINATION_DIR,
+    ]
+    out_string, error_string = cluster_commands.run_and_wait_on_process(
+        copy_cluster_cmds_to_remote_cmd, LOCAL_OUT_DIR
+    )
+
+    # step 7: submit jobs to remote
+    """
+    go to remote, navigate to the folder where the scripts are, and submit via terminal:
+        `bash submit_all_slurm_jobs.sh cluster_cmds.txt`
+    """
     return
 
 

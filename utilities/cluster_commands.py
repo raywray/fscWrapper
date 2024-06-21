@@ -27,6 +27,7 @@ def send_cmd_to_cluster(
 def run_and_wait_on_process(cmd, folder):
     program = cmd[0]
     log.write_to_log(" ".join(cmd))
+    print(" ".join(cmd))
     process_completed_result = subprocess.run(cmd, capture_output=True, cwd=folder)
     error_string = process_completed_result.stderr.decode()
     out_string = process_completed_result.stdout.decode()
