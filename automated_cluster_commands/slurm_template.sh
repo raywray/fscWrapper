@@ -19,9 +19,12 @@ echo "job submitted: $DATE"
 echo "job STDOUT follows:"
 echo " "
 
+# Change to the directory where the job was submitted from
+cd $SLURM_SUBMIT_DIR
+
 # Activate the Conda environment
 conda init bash
-source /opt/linux/rocky/8.x/x86_64/pkgs/miniconda3/py39_4.12.0/bin/conda
+source /opt/linux/rocky/8.x/x86_64/pkgs/miniconda3/py39_4.12.0/etc/profile.d/conda.sh
 conda activate fsc_wrapper_env
 
 # List the Conda environments for debugging

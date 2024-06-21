@@ -1,6 +1,5 @@
 import os
 import sys
-import math
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utilities import generate_random_model, cluster_commands
@@ -19,6 +18,7 @@ LOCAL_TEMPLATE_SLURM_FILE = os.path.join(
 LOCAL_OUT_DIR = os.path.join(LOCAL_BASE_PATH, "sim_output")
 LOCAL_OUTPUT_SIM_DIR = os.path.join(LOCAL_OUT_DIR, SIMULATION_SUB_FOLDER)
 LOCAL_OUTPUT_COMMANDS_DIR = os.path.join(LOCAL_OUT_DIR, "slurm_commands")
+LOCAL_CLUSTER_CMDS_FILE = os.path.join(LOCAL_OUTPUT_COMMANDS_DIR, "cluster_cmds.txt")
 
 # remote
 REMOTE_BASE_PATH = "/rhome/respl001"
@@ -155,14 +155,18 @@ def create_job_scripts(num_models, num_sims_per_model):
             replacements,
         )
         cluster_cmds.append(job_script_name)
+    return cluster_cmds
+
+def write_cluster_cmds_to_txt_file(cluster_cmds):
+    with open(LOCAL_CLUSTER_CMDS_FILE, "w") as f:
+        f.write("\n".join(cluster_cmds))
+        f.write("\n")
 
 
 """SCRIPT"""
-
-
 def run():
     num_models = 10  # TODO: change to 1000
-    num_sims_per_model = 5
+    num_sims_per_model = 5 # TODO: change to 100
 
     # make local output dirs
     make_dirs(LOCAL_OUT_DIR)
@@ -180,6 +184,7 @@ def run():
 
     # step 4: make scripts
     cluster_cmds = create_job_scripts(num_models, num_sims_per_model)
+    write_cluster_cmds_to_txt_file(cluster_cmds)
 
     return
 
