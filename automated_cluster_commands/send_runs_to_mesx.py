@@ -1,12 +1,8 @@
 import os
-import subprocess
-import time
 import sys
 
-import log
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from utilities import generate_random_model
+from utilities import generate_random_model, cluster_commands
 
 
 def make_output_dir(output_dir_path):
@@ -26,6 +22,7 @@ def add_params_to_run_template():
         local_base_path = "/home/raya/Documents/Projects/fscWrapper/"
 
     # initialize constant vars
+    mesx_bash_profile_path = os.path.join(mesx_base_path, ".bash_profile")
     mesx_project_path = os.path.join(mesx_base_path, "fscWrapper")
     simulation_subfolder = "fsc_output"
     me_at_remote_URL = "resplin5072@mesx.sdsu.edu"
@@ -65,7 +62,7 @@ def add_params_to_run_template():
     # generate_random_models(num_models, local_output_simulation_dir, local_base_path)
 
     # make mesx output dir
-    # make_mesx_output_dir(mesx_fsc_output_dir, me_at_remote_URL, local_out_dir)
+    # make_mesx_output_dir(mesx_fsc_output_dir, mesx_bash_profile_path, me_at_remote_URL, local_out_dir)
 
     # copy all the output dirs to mesx
     # copy_model_dirs_to_mesx(
@@ -98,7 +95,7 @@ def add_params_to_run_template():
 
     # submit job to mesx
     # submit_full_jobs_to_mesx(
-    #     mesx_qsub_script_destination_folder, me_at_remote_URL, local_out_dir
+    #     mesx_qsub_script_destination_folder, mesx_bash_profile_path, me_at_remote_URL, local_out_dir
     # )
 
 
@@ -109,21 +106,21 @@ def write_cluster_cmds_to_txt_file(cluster_cmds, local_cluster_cmds_txt_file_pat
 
 
 def submit_full_jobs_to_mesx(
-    mesx_qsub_script_destination_folder, me_at_remote_URL, local_out_dir
+    mesx_qsub_script_destination_folder, me_at_remote_URL, bash_profile_path, local_out_dir
 ):
     full_sumbit_job_mesx_cmd = [
         "cd " + mesx_qsub_script_destination_folder + ";",
         "bash submit_all_jobs.sh cluster_cmds.txt;",
     ]
-    out_string, error_string = send_cmd_to_cluster(
-        me_at_remote_URL, full_sumbit_job_mesx_cmd, local_out_dir, retry=True
+    out_string, error_string = cluster_commands.send_cmd_to_cluster(
+        me_at_remote_URL, bash_profile_path, full_sumbit_job_mesx_cmd, local_out_dir, retry=True
     )
 
 
-def make_mesx_output_dir(mesx_fsc_output_dir, me_at_remote_URL, local_out_dir):
+def make_mesx_output_dir(mesx_fsc_output_dir, me_at_remote_URL, bash_profile_path, local_out_dir):
     make_output_dir_cmd = ["mkdir " + mesx_fsc_output_dir]
-    out_string, error_string = send_cmd_to_cluster(
-        me_at_remote_URL, make_output_dir_cmd, local_out_dir
+    out_string, error_string = cluster_commands.send_cmd_to_cluster(
+        me_at_remote_URL, bash_profile_path, make_output_dir_cmd, local_out_dir
     )
 
 
@@ -140,7 +137,7 @@ def copy_cluster_cmds_to_mesx(
         me_at_remote_URL + ":" + mesx_qsub_script_destination_folder,
     ]
     print(" ".join(copy_cluster_cmds_to_mesx_cmd))
-    out_string, error_string = run_and_wait_on_process(
+    out_string, error_string = cluster_commands.run_and_wait_on_process(
         copy_cluster_cmds_to_mesx_cmd, local_out_dir
     )
 
@@ -155,7 +152,7 @@ def copy_model_dirs_to_mesx(
         me_at_remote_URL + ":" + mesx_out_dir,
     ]
     print(" ".join(copy_model_output_dirs_to_mesx_cmd))
-    out_string, error_string = run_and_wait_on_process(
+    out_string, error_string = cluster_commands.run_and_wait_on_process(
         copy_model_output_dirs_to_mesx_cmd, local_out_dir
     )
     print("copied all files to mesx")
@@ -322,68 +319,6 @@ def write_sh_file(template_file, out_dir, new_file_name, replacements):
         for line in lines_to_write:
             f.writelines(line)
     return new_sh_file
-
-
-def run_and_wait_on_process(cmd, folder):
-    program = cmd[0]
-    log.write_to_log(" ".join(cmd))
-    process_completed_result = subprocess.run(cmd, capture_output=True, cwd=folder)
-    error_string = process_completed_result.stderr.decode()
-    out_string = process_completed_result.stdout.decode()
-
-    colored_error_string = "\033[93m" + "ERROR:  " + error_string + "\x1b[0m"
-
-    if len(error_string) > 0:
-        log.write_to_log(colored_error_string)
-
-    with open(os.path.join(folder, program + "_stderr.txt"), "w") as f:
-        f.writelines(error_string)
-    with open(os.path.join(folder, program + "_stdout.txt"), "w") as f:
-        f.writelines(out_string)
-
-    return out_string, error_string
-
-
-def run_and_wait_with_retry(cmd, folder, excuse, num_retries_allowed, sleepy_time):
-    num_tries = 0
-
-    while True:
-        out_string, error_string = run_and_wait_on_process(cmd, folder)
-        num_tries = num_tries + 1
-        if num_tries > num_retries_allowed:
-            break
-
-        if excuse in error_string:
-            log.write_to_log(
-                "Got " + excuse + ". Retrying " + str(num_tries) + " time."
-            )
-            log.write_to_log("Wait for " + str(sleepy_time) + " secs.")
-            time.sleep(sleepy_time)
-        else:
-            break
-    return out_string, error_string
-
-
-def send_cmd_to_cluster(
-    remote_url,
-    cmd_list,
-    out_dir,
-    excuse="Connection reset by peer",
-    num_re_all=3,
-    sleepy_time=10,
-    retry=False,
-):
-    cmds_to_append = ["ssh", remote_url, ". /home/resplin5072/.bash_profile;"]
-    cmds_to_send = cmds_to_append + cmd_list
-    print(" ".join(cmds_to_send))
-    if retry:
-        out_string, error_string = run_and_wait_with_retry(
-            cmds_to_send, out_dir, excuse, num_re_all, sleepy_time
-        )
-    else:
-        out_string, error_string = run_and_wait_on_process(cmds_to_send, out_dir)
-    return out_string, error_string
-
 
 # run command
 add_params_to_run_template()

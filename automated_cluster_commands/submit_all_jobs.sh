@@ -23,10 +23,6 @@ while IFS= read -r PBS_SCRIPT; do
         qsub "$PBS_SCRIPT"
         echo "Submitted: $PBS_SCRIPT"
         COUNTER=$((COUNTER + 1))
-        # Sleep after every 10th submission
-        # if [ $((COUNTER % 100)) -eq 0 ]; then
-        #     sleep 1m  # Adjust the sleep duration as needed
-        # fi
     else
         echo "Script not found: $PBS_SCRIPT"
     fi
