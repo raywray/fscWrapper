@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1     # This will be the number of CPUs per individual array job
-#SBATCH --mem=300M     # This will be the memory per individual array job
-#SBATCH --time=0-12:00:00     # 12 hrs per job
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=300M
+#SBATCH --time=0-48:00:00
 #SBATCH --array=1-ARRAY_MAX
 #SBATCH --job-name=JOB_NAME
 #SBATCH --partition=PARTITION
