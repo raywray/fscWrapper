@@ -78,35 +78,39 @@ def get_random_growth_rate():
 
 
 # TODO: will need to look at this again when putting more complex events back in
-def get_sources_and_sinks(ghost_present, number_of_populations):
-    possible_sources = list(range(number_of_populations))
-    possible_sinks = list(range(number_of_populations))
+def get_admix_sources_and_sinks(ghost_present, number_of_populations):
+    sources, sinks = [], []
+    
+    while sources == sinks:
+        possible_sources = list(range(number_of_populations))
+        possible_sinks = list(range(number_of_populations))
 
-    if ghost_present:
-        possible_sources.pop(-1)
-        possible_sinks.pop(-1)
+        if ghost_present:
+            possible_sources.pop(-1)
+            possible_sinks.pop(-1)
 
-        # determine if ghost is source or sink
-        if random.choice([True, False]):
-            possible_sources.append("G")
-        else:
-            possible_sinks.append("G")
+            # determine if ghost is source or sink
+            if random.choice([True, False]):
+                possible_sources.append("G")
+            else:
+                possible_sinks.append("G")
 
-    sources = []
-    for _ in range(random.randint(1, number_of_populations)):
-        if possible_sources == []:
-            break
-        new_source = random.choice(possible_sources)
-        sources.append(str(new_source))
-        possible_sources.remove(new_source)
+        sources = []
+        sinks = []
 
-    sinks = []
-    for _ in range(random.randint(1, number_of_populations)):
-        if possible_sinks == []:
-            break
-        new_sink = random.choice(possible_sinks)
-        sinks.append(str(new_sink))
-        possible_sinks.remove(new_sink)
+        for _ in range(random.randint(1, number_of_populations)):
+            if possible_sources == []:
+                break
+            new_source = random.choice(possible_sources)
+            sources.append(str(new_source))
+            possible_sources.remove(new_source)
+
+        for _ in range(random.randint(1, number_of_populations)):
+            if possible_sinks == []:
+                break
+            new_sink = random.choice(possible_sinks)
+            sinks.append(str(new_sink))
+            possible_sinks.remove(new_sink)
 
     return sources, sinks
 
@@ -188,7 +192,7 @@ def get_divergence_events(ghost_present, number_of_populations, pops_should_migr
 def get_admixture_events(ghost_present, num_pops):
     # TODO: determine how many admixture events to add
     # TODO: consider resizing demes during admixture
-    sources, sinks = get_sources_and_sinks(
+    sources, sinks = get_admix_sources_and_sinks(
         ghost_present, num_pops
     )  # TODO: look at this again        
 
@@ -339,7 +343,7 @@ def get_historical_events(ghost_present, number_of_populations, pops_should_migr
     per ChatGPT, there doesn't have to be migration for there to be admixture
     """
     if random.choice([True, False]):
-        admixture_events = get_admixture_events(ghost_present, number_of_populations)
+        admixture_events = get_admixture_events(ghost_present=ghost_present, num_pops=number_of_populations)
         historical_events.extend(admixture_events)
 
     # randomize adding bottlenecks

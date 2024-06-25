@@ -1,5 +1,5 @@
 qdels = ["qdel"]
-for i in range(187043, 187775 + 1):
+for i in range(657035, 660819 + 1):
     qdels.append(str(i))
 
 with open("qdel.txt", "w") as f:

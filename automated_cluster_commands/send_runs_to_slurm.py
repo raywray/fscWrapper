@@ -93,7 +93,7 @@ def create_job_scripts(num_models, num_sims_per_model):
     cluster_cmds = []
     partitions = ["epyc", "intel", "batch"]
     partition_counter = 0 # initialize the couter to 0
-    max_jobs_per_array = 2500
+    max_jobs_per_array = 2499
     total_jobs_to_run = num_models * num_sims_per_model
 
     # step 1: figure out how many outer scripts there are
@@ -169,17 +169,21 @@ def run():
     make_dirs(LOCAL_OUTPUT_COMMANDS_DIR)
 
     # step 1: generate random models
-    generate_random_models(num_models)
+    # generate_random_models(num_models)
+    print(" ************** MODELS GENERATED **************")
 
     # step 2: make remote output dirs (if not already made)
-    make_remote_output_dir()
+    # make_remote_output_dir()
+    print(" ************** REMOTE DIRS MADE **************")
 
     # step 3: copy all output dirs to cluster
-    copy_models_dir_to_cluster()
+    # copy_models_dir_to_cluster()
+    print(" ************** MODELS COPIED TO CLUSTER **************")
 
     # step 4: make scripts
     cluster_cmds = create_job_scripts(num_models, num_sims_per_model)
     write_cluster_cmds_to_txt_file(cluster_cmds)
+    print(" ************** SCRIPTS GENERATED **************")
 
     # step 5: copy the submit all script to local output dir
     copy_script_cmd = ["cp", LOCAL_SUBMIT_JOBS_SCRIPT, LOCAL_OUTPUT_COMMANDS_DIR]
@@ -192,14 +196,15 @@ def run():
         LOCAL_OUTPUT_COMMANDS_DIR,
         ME_AT_REMOTE_URL + ":" + REMOTE_SLURM_DESTINATION_DIR,
     ]
-    out_string, error_string = cluster_commands.run_and_wait_on_process(
-        copy_cluster_cmds_to_remote_cmd, LOCAL_OUT_DIR
-    )
+    # out_string, error_string = cluster_commands.run_and_wait_on_process(
+    #     copy_cluster_cmds_to_remote_cmd, LOCAL_OUT_DIR
+    # )
+    print(" ************** SLURM CMDS COPIED **************")
 
     # step 7: submit jobs to remote
     """
     go to remote, navigate to the folder where the scripts are, and submit via terminal:
-        `bash submit_all_slurm_jobs.sh cluster_cmds.txt`
+        `bash submit_all_slurm_jobs.sh cluster_cmds.txt > bash_output.txt`
     """
     return
 
