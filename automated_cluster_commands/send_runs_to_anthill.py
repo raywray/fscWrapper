@@ -171,9 +171,9 @@ def copy_ucr_dirs_to_anthill(beginning_model_num, num_models_to_move):
 
 
 def run():
-    beginning_model_num = 985  # starts from the back, will do 5 models (need to manually change this to go down)
+    beginning_model_num = 896  # starts from the back, will do 5 models (need to manually change this to go down)
     num_sims_per_model = 100
-    num_models_to_submit_at_a_time = 70
+    num_models_to_submit_at_a_time = 20 # it is 7 scripts per model
 
     # make local output dirs
     make_dirs(LOCAL_OUT_DIR)
@@ -185,7 +185,6 @@ def run():
     print(" ************** REMOTE DIRS MADE **************")
 
     # step 2: move 100 models from ucr to anthill (start from the back)
-    num_models_to_move = 5
     # copy_ucr_dirs_to_anthill(beginning_model_num, num_models_to_move) NOTE: DONEEEEEE
     print(" ************** MODELS MOVED ******************")
 
