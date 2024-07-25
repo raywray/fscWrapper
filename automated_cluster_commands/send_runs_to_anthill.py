@@ -171,7 +171,7 @@ def copy_ucr_dirs_to_anthill(beginning_model_num, num_models_to_move):
 
 
 def run():
-    beginning_model_num = 896  # starts from the back, will do 5 models (need to manually change this to go down)
+    beginning_model_num = 876  # starts from the back, will do 5 models (need to manually change this to go down)
     num_sims_per_model = 100
     num_models_to_submit_at_a_time = 20 # it is 7 scripts per model
 
