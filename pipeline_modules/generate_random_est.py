@@ -1,5 +1,6 @@
 import re
 
+
 def write_est(simple_params, complex_params, est_filename):
     lines = (
         [
@@ -64,7 +65,7 @@ def get_migration_params(tpl, migration_dist):
         for element in list_to_search:
             unique_params.update(re.findall(pattern_to_find, element))
         return list(unique_params)
-    
+
     # get the migration parameters from tpl
     mig_params_from_tpl = get_params_from_tpl(tpl, "MIG")
     migration_pattern = r"\bMIG\w\w\$*"
@@ -133,14 +134,15 @@ def generate_simple_complex_historical_params(historical_params, time_dist):
             )
     return simple_params, complex_params
 
+
 def get_historical_event_params(tpl, time_dist, param_type):
 
     historical_event_params = []
     for element in get_params_from_tpl(tpl, "T_"):
         historical_event_params.extend(re.findall(r"\bT_\w*\$*", element))
 
-    simple_historical_params, complex_historical_params = generate_simple_complex_historical_params(
-        historical_event_params, time_dist
+    simple_historical_params, complex_historical_params = (
+        generate_simple_complex_historical_params(historical_event_params, time_dist)
     )
 
     if param_type == "simple":
@@ -177,28 +179,28 @@ def get_div_resize_params(tpl):
         for element in variable.split()
         if element.startswith("RELANC")
     ]
-    
+
     if resize_lines_from_tpl:
         # handle the first in the list
         first_resize_param = resize_params[0]
-        sink_source = first_resize_param[len("RELANC"):first_resize_param.find("$")]
+        source_sink = first_resize_param[len("RELANC") : first_resize_param.find("$")]
         complex_resize_params.append(
-            f"0 {first_resize_param} = N_ANCALL$/N_ANC{sink_source}$ hide"
+            f"0 {first_resize_param} = N_ANCALL$/N_ANC{source_sink}$ hide"
         )
         resize_params.remove(first_resize_param)
         simple_params_to_add.append("N_ANCALL$")
-        simple_params_to_add.append(f"N_ANC{sink_source}$")
+        simple_params_to_add.append(f"N_ANC{source_sink}$")
         # handle rest of the names
         for param in resize_params:
-            sink_source = param[len("RELANC"):param.find("$")]
-            
+            source_sink = param[len("RELANC") : param.find("$")]
+
             complex_resize_params.append(
-                f"0 {param} = N_ANC{sink_source[0]}{sink_source[1]}$/N_POP{sink_source[1]}$ hide"
+                f"0 {param} = N_ANC{source_sink[0]}{source_sink[1]}$/N_POP{source_sink[1]}$ hide"
             )
-            simple_params_to_add.append(f"N_ANC{sink_source[0]}{sink_source[1]}$")
-        
+            simple_params_to_add.append(f"N_ANC{source_sink[0]}{source_sink[1]}$")
 
     return complex_resize_params, simple_params_to_add
+
 
 def get_bot_resize_params(tpl):
     complex_resize_params = []
@@ -210,27 +212,29 @@ def get_bot_resize_params(tpl):
         for element in variable.split()
         if element.startswith("RESBOT")
     ]
-    bot_end_resize_params = [param for param in resize_params if param.startswith("RESBOTEND")]
-    bot_start_resize_params = [param for param in resize_params if param not in bot_end_resize_params]
+    bot_end_resize_params = [
+        param for param in resize_params if param.startswith("RESBOTEND")
+    ]
+    bot_start_resize_params = [
+        param for param in resize_params if param not in bot_end_resize_params
+    ]
 
     if resize_lines_from_tpl:
         for start_param in bot_start_resize_params:
-            bot_pop = start_param[len("RESBOT"): -1]
+            bot_pop = start_param[len("RESBOT") : -1]
             complex_resize_params.append(
                 f"0 {start_param} = N_BOT{bot_pop}$/N_CUR{bot_pop}$ hide"
             )
             simple_params_to_add.append(f"N_BOT{bot_pop}$")
             simple_params_to_add.append(f"N_CUR{bot_pop}$")
         for end_param in bot_end_resize_params:
-            bot_pop = end_param[len("RESBOTEND"): -1]
+            bot_pop = end_param[len("RESBOTEND") : -1]
             complex_resize_params.append(
                 f"0 {end_param} = N_ANC{bot_pop}$/N_BOT{bot_pop}$ hide"
             )
             simple_params_to_add.append(f"N_ANC{bot_pop}$")
 
-
     return complex_resize_params, simple_params_to_add
-
 
 
 def get_complex_params(tpl, time_dist):
@@ -241,7 +245,8 @@ def get_complex_params(tpl, time_dist):
 
     # get bottleneck resize params
     complex_bot_resize_params, simple_bot_params_to_add = get_bot_resize_params(tpl)
-    if simple_bot_params_to_add: simple_params_to_add.extend(simple_bot_params_to_add)
+    if simple_bot_params_to_add:
+        simple_params_to_add.extend(simple_bot_params_to_add)
     # need to add ancsize to simple params
     if complex_resize_params:
         complex_params.extend(complex_resize_params)
